@@ -125,8 +125,11 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'  # Ensure single leading slash, no trailing slash
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Admin URL configuration - fix double slash issue
+FORCE_SCRIPT_NAME = '/api/v1/admin/'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
