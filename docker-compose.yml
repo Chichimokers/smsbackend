@@ -48,7 +48,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - .env.example
     environment:
       - DB_HOST=db
       - CACHE_URL=redis://redis:6379/1
