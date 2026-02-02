@@ -125,7 +125,7 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'  # Ensure single leading slash, no trailing slash
+STATIC_URL = '/api/v1/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Admin URL configuration - fix double slash issue
