@@ -188,16 +188,16 @@ class RentalView(APIView):
         """List all rentals with live sync from DaisySMS."""
         user = request.user
         
-        # Get user account (with lock for potential refunds)
-        account, _ = UserAccount.objects.select_for_update().get_or_create(user=user)
+        # Get user account
+        account, _ = UserAccount.objects.get_or_create(user=user)
         
         # Get query params
         status_filter = request.query_params.get('status', '').upper()
         limit = int(request.query_params.get('limit', 50))
         offset = int(request.query_params.get('offset', 0))
         
-        # Base queryset
-        queryset = PhoneRental.objects.filter(user=user).select_for_update()
+        # Base queryset (no lock needed for reading)
+        queryset = PhoneRental.objects.filter(user=user)
         
         # Apply status filter
         if status_filter and status_filter != 'ALL':
@@ -216,11 +216,15 @@ class RentalView(APIView):
         has_active = any(r.status == PhoneRental.RentalStatus.ACTIVE for r in rentals)
         client = get_daisy_client() if has_active else None
         
+        logger.info(f'[Polling] User {user.email} - {len(rentals)} rentals, {sum(1 for r in rentals if r.status == PhoneRental.RentalStatus.ACTIVE)} active')
+        
         # Sync each rental and build response
         rentals_data = []
         for rental in rentals:
             rental_data = self._sync_rental_with_daisy(rental, client, account)
             rentals_data.append(rental_data)
+        
+        logger.info(f'[Polling] User {user.email} - Returning {len(rentals_data)} rentals')
         
         return Response({
             'rentals': rentals_data,
