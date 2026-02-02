@@ -17,7 +17,7 @@ jobs:
       - name: Create .env file
         run: |
           cat > .env << 'EOF'
-          DEBUG=False
+          DEBUG=True
           SECRET_KEY=${{ secrets.SECRET_KEY }}
           ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
           DB_ENGINE=django.db.backends.postgresql
@@ -32,40 +32,39 @@ jobs:
           MOCK_DAISY_SMS=false
           DEFAULT_EXCHANGE_RATE_CUP_PER_USD=4800
           EOF
-
       
-      - name: Start only database and redis first
+      - name: Stop and remove all containers
+        run: |
+          docker-compose down --remove-orphans || true
+          docker rm -f sms_web sms_db sms_redis 2>/dev/null || true
+      
+      - name: Build all containers
+        run: docker-compose build
+      
+      - name: Start database and redis
         run: docker-compose up -d db redis
       
       - name: Wait for database to be ready
         run: |
-          echo "Waiting for PostgreSQL to be ready..."
-          sleep 10
+          echo "Waiting for PostgreSQL..."
+          sleep 15
           until docker-compose exec -T db pg_isready -U postgres; do
-            echo "PostgreSQL not ready yet, waiting..."
-            sleep 2
+            sleep 3
           done
-          echo "PostgreSQL is ready!"
+          echo "PostgreSQL ready!"
       
-      - name: Build web container
-        run: docker-compose build web
-      
-      - name: Create migrations for all apps
+      - name: Run migrations and setup
         run: |
-          echo "Generating migrations inside container..."
+          echo "=== Creating migrations ==="
           docker-compose run --rm web python manage.py makemigrations users --noinput
           docker-compose run --rm web python manage.py makemigrations accounts --noinput
           docker-compose run --rm web python manage.py makemigrations rentals --noinput
           docker-compose run --rm web python manage.py makemigrations services --noinput
-      
-      - name: Run migrations
-        run: |
-          echo "Applying all migrations..."
+          
+          echo "=== Applying migrations ==="
           docker-compose run --rm web python manage.py migrate --noinput
-      
-      - name: Create superuser admin
-        run: |
-          echo "Creating superuser admin..."
+          
+          echo "=== Creating superuser ==="
           docker-compose run --rm web python manage.py shell -c "
           from apps.users.models import User
           if not User.objects.filter(email='admin@admin.com').exists():
@@ -74,19 +73,19 @@ jobs:
           else:
               print('Superuser already exists')
           "
+          
+          echo "=== Collecting static files ==="
+          docker-compose run --rm web python manage.py collectstatic --noinput
       
-      - name: Collect static files
-        run: docker-compose run --rm web python manage.py collectstatic --noinput
-      
-      - name: Start web container
-        run: docker-compose up -d web
-      
-      - name: Wait for web to be healthy
-        run: sleep 10
-      
-      - name: Show status
+      - name: Start web server
         run: |
+          docker-compose up -d web
+          sleep 5
+      
+      - name: Verify deployment
+        run: |
+          echo "=== Container Status ==="
           docker-compose ps
-          echo "---"
-          echo "Checking web container logs:"
-          docker-compose logs --tail=20 web
+          echo ""
+          echo "=== Web Logs ==="
+          docker-compose logs --tail=30 web
