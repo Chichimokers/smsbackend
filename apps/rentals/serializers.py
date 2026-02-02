@@ -39,3 +39,21 @@ class RentNumberSerializer(serializers.Serializer):
         default='187',
         help_text='Codigo del pais (default: 187 para USA)'
     )
+    areas = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        help_text='Area codes (ej: 212,718) - Añade 20% al precio'
+    )
+    carriers = serializers.CharField(
+        max_length=50,
+        required=False,
+        allow_blank=True,
+        help_text='Carriers (ej: tmo,vz,att) - Añade 20% al precio'
+    )
+    number = serializers.CharField(
+        max_length=20,
+        required=False,
+        allow_blank=True,
+        help_text='Numero especifico (ej: 11112223344) - Añade 20% al precio'
+    )

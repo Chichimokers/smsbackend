@@ -260,7 +260,10 @@ class DaisySMSClient:
     def rent_number(
         self,
         service_code: str,
-        max_price_usd: Optional[Decimal] = None
+        max_price_usd: Optional[Decimal] = None,
+        areas: Optional[str] = None,
+        carriers: Optional[str] = None,
+        number: Optional[str] = None
     ) -> RentalResult:
         """
         Rent a phone number for a service.
@@ -268,6 +271,9 @@ class DaisySMSClient:
         Args:
             service_code: Service code (e.g., 'wa' for WhatsApp)
             max_price_usd: Maximum price willing to pay (optional)
+            areas: Area codes (e.g., '212,718') - adds 20% to price
+            carriers: Carriers (e.g., 'tmo,vz') - adds 20% to price
+            number: Specific number (e.g., '11112223344') - adds 20% to price
             
         Returns:
             RentalResult with rental_id, phone_number, and price_usd
@@ -279,6 +285,14 @@ class DaisySMSClient:
         
         if max_price_usd is not None:
             params['max_price'] = str(max_price_usd)
+        
+        # Add optional parameters
+        if areas is not None:
+            params['areas'] = areas
+        if carriers is not None:
+            params['carriers'] = carriers
+        if number is not None:
+            params['number'] = number
         
         response, headers = self._make_request(params, include_headers=True)
         

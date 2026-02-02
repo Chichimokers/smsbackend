@@ -199,7 +199,10 @@ class DaisySMSClientMock:
     def rent_number(
         self,
         service_code: str,
-        max_price_usd: Optional[Decimal] = None
+        max_price_usd: Optional[Decimal] = None,
+        areas: Optional[str] = None,
+        carriers: Optional[str] = None,
+        number: Optional[str] = None
     ) -> RentalResult:
         """
         Rent a phone number for a service.
@@ -207,6 +210,9 @@ class DaisySMSClientMock:
         Args:
             service_code: Service code (e.g., 'wa' for WhatsApp)
             max_price_usd: Maximum price willing to pay
+            areas: Area codes (e.g., '212,718') - adds 20% to price
+            carriers: Carriers (e.g., 'tmo,vz') - adds 20% to price
+            number: Specific number (e.g., '11112223344') - adds 20% to price
         
         Returns:
             RentalResult with rental_id, phone_number, price_usd
@@ -230,6 +236,10 @@ class DaisySMSClientMock:
             raise NoNumbersAvailableError(f'No numbers available for {service_code}')
         
         price = Decimal(service['price'])
+        
+        # Apply 20% markup if special options requested
+        if areas or carriers or number:
+            price = price * Decimal('1.20')
         
         # Check max price
         if max_price_usd is not None and price > max_price_usd:

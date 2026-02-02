@@ -226,6 +226,9 @@ class RentalView(APIView):
         service_code = serializer.validated_data['service_code']
         max_price_usd = serializer.validated_data.get('max_price_usd')
         country = serializer.validated_data.get('country', '187')
+        areas = serializer.validated_data.get('areas') or None
+        carriers = serializer.validated_data.get('carriers') or None
+        number = serializer.validated_data.get('number') or None
         
         # Get user account
         account, _ = UserAccount.objects.select_for_update().get_or_create(
@@ -280,10 +283,13 @@ class RentalView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Rent from DaisySMS
+            # Rent from DaisySMS with optional parameters
             rental_result = client.rent_number(
                 service_code=service_code,
-                max_price_usd=max_price_usd
+                max_price_usd=max_price_usd,
+                areas=areas,
+                carriers=carriers,
+                number=number
             )
             
             # Calculate actual price in CUP (from actual DaisySMS price)
@@ -323,8 +329,8 @@ class RentalView(APIView):
                 description=f'Alquiler {service.name}: {rental.formatted_phone}'
             )
             
-            # Return response with all rental info
-            return Response({
+            # Build response with requested options
+            response_data = {
                 'id': rental.id,
                 'daisy_rental_id': rental.daisy_rental_id,
                 'phone': rental.formatted_phone,
@@ -340,8 +346,21 @@ class RentalView(APIView):
                 'has_sms': False,
                 'sms': [],
                 'refunded': False,
-                'new_balance_cup': str(account.balance_cup)
-            }, status=status.HTTP_201_CREATED)
+                'new_balance_cup': str(account.balance_cup),
+            }
+            
+            # Add requested options if provided
+            if areas:
+                response_data['requested_areas'] = areas
+                response_data['price_markup_note'] = 'Área específica: +20% al precio'
+            if carriers:
+                response_data['requested_carrier'] = carriers
+                response_data['price_markup_note'] = 'Carrier específico: +20% al precio'
+            if number:
+                response_data['requested_number'] = number
+                response_data['price_markup_note'] = 'Número específico: +20% al precio'
+            
+            return Response(response_data, status=status.HTTP_201_CREATED)
             
         except NoNumbersAvailableError:
             return Response(
