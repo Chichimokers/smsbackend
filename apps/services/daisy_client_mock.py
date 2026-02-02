@@ -45,27 +45,76 @@ logger = logging.getLogger(__name__)
 # MOCK DATA - Realistic services with actual DaisySMS prices
 # ============================================================================
 
-MOCK_SERVICES_DATA = [
-    # Popular services
-    {'code': 'wa', 'name': 'WhatsApp', 'price': '0.25', 'count': 100, 'multi': False},
-    {'code': 'go', 'name': 'Google', 'price': '0.30', 'count': 50, 'multi': True},
-    {'code': 'tg', 'name': 'Telegram', 'price': '0.20', 'count': 75, 'multi': False},
-    {'code': 'ig', 'name': 'Instagram', 'price': '0.35', 'count': 40, 'multi': False},
-    {'code': 'fb', 'name': 'Facebook', 'price': '0.30', 'count': 60, 'multi': False},
-    {'code': 'tw', 'name': 'Twitter/X', 'price': '0.40', 'count': 30, 'multi': False},
-    {'code': 'ds', 'name': 'Discord', 'price': '0.25', 'count': 80, 'multi': False},
-    {'code': 'ti', 'name': 'TikTok', 'price': '0.35', 'count': 45, 'multi': False},
-    {'code': 'ai', 'name': 'OpenAI', 'price': '0.50', 'count': 20, 'multi': False},
-    {'code': 'sp', 'name': 'Spotify', 'price': '0.30', 'count': 35, 'multi': False},
-    {'code': 'nf', 'name': 'Netflix', 'price': '0.45', 'count': 25, 'multi': False},
-    {'code': 'am', 'name': 'Amazon', 'price': '0.40', 'count': 30, 'multi': True},
-    {'code': 'ms', 'name': 'Microsoft', 'price': '0.35', 'count': 40, 'multi': True},
-    {'code': 'ap', 'name': 'Apple', 'price': '0.50', 'count': 15, 'multi': False},
-    {'code': 'ub', 'name': 'Uber', 'price': '0.30', 'count': 50, 'multi': False},
-    {'code': 'vi', 'name': 'Viber', 'price': '0.20', 'count': 60, 'multi': False},
-    {'code': 'li', 'name': 'LinkedIn', 'price': '0.40', 'count': 25, 'multi': False},
-    {'code': 'sn', 'name': 'Snapchat', 'price': '0.35', 'count': 35, 'multi': False},
-]
+# Services data with multiple countries
+MOCK_SERVICES_DATA = {
+    # USA (187) - Primary market
+    '187': [
+        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.25', 'count': 100, 'multi': False},
+        {'code': 'go', 'name': 'Google', 'price': '0.30', 'count': 50, 'multi': True},
+        {'code': 'tg', 'name': 'Telegram', 'price': '0.20', 'count': 75, 'multi': False},
+        {'code': 'ig', 'name': 'Instagram', 'price': '0.35', 'count': 40, 'multi': False},
+        {'code': 'fb', 'name': 'Facebook', 'price': '0.30', 'count': 60, 'multi': False},
+        {'code': 'tw', 'name': 'Twitter/X', 'price': '0.40', 'count': 30, 'multi': False},
+        {'code': 'ds', 'name': 'Discord', 'price': '0.25', 'count': 80, 'multi': False},
+        {'code': 'ti', 'name': 'TikTok', 'price': '0.35', 'count': 45, 'multi': False},
+        {'code': 'ai', 'name': 'OpenAI', 'price': '0.50', 'count': 20, 'multi': False},
+        {'code': 'sp', 'name': 'Spotify', 'price': '0.30', 'count': 35, 'multi': False},
+        {'code': 'nf', 'name': 'Netflix', 'price': '0.45', 'count': 25, 'multi': False},
+        {'code': 'am', 'name': 'Amazon', 'price': '0.40', 'count': 30, 'multi': True},
+        {'code': 'ms', 'name': 'Microsoft', 'price': '0.35', 'count': 40, 'multi': True},
+        {'code': 'ap', 'name': 'Apple', 'price': '0.50', 'count': 15, 'multi': False},
+        {'code': 'ub', 'name': 'Uber', 'price': '0.30', 'count': 50, 'multi': False},
+        {'code': 'vi', 'name': 'Viber', 'price': '0.20', 'count': 60, 'multi': False},
+        {'code': 'li', 'name': 'LinkedIn', 'price': '0.40', 'count': 25, 'multi': False},
+        {'code': 'sn', 'name': 'Snapchat', 'price': '0.35', 'count': 35, 'multi': False},
+    ],
+    # UK (18)
+    '18': [
+        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.30', 'count': 45, 'multi': False},
+        {'code': 'go', 'name': 'Google', 'price': '0.35', 'count': 30, 'multi': True},
+        {'code': 'tg', 'name': 'Telegram', 'price': '0.25', 'count': 50, 'multi': False},
+        {'code': 'ig', 'name': 'Instagram', 'price': '0.40', 'count': 25, 'multi': False},
+        {'code': 'fb', 'name': 'Facebook', 'price': '0.35', 'count': 35, 'multi': False},
+    ],
+    # Canada (36)
+    '36': [
+        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.28', 'count': 60, 'multi': False},
+        {'code': 'go', 'name': 'Google', 'price': '0.32', 'count': 40, 'multi': True},
+        {'code': 'tg', 'name': 'Telegram', 'price': '0.22', 'count': 55, 'multi': False},
+        {'code': 'ai', 'name': 'OpenAI', 'price': '0.55', 'count': 15, 'multi': False},
+    ],
+    # Germany (40)
+    '40': [
+        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.35', 'count': 35, 'multi': False},
+        {'code': 'go', 'name': 'Google', 'price': '0.40', 'count': 25, 'multi': True},
+        {'code': 'tg', 'name': 'Telegram', 'price': '0.30', 'count': 40, 'multi': False},
+    ],
+    # Russia (0)
+    '0': [
+        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.10', 'count': 200, 'multi': False},
+        {'code': 'go', 'name': 'Google', 'price': '0.12', 'count': 150, 'multi': True},
+        {'code': 'tg', 'name': 'Telegram', 'price': '0.08', 'count': 300, 'multi': False},
+        {'code': 'vk', 'name': 'VKontakte', 'price': '0.05', 'count': 500, 'multi': False},
+    ],
+    # India (85)
+    '85': [
+        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.15', 'count': 150, 'multi': False},
+        {'code': 'go', 'name': 'Google', 'price': '0.18', 'count': 100, 'multi': True},
+        {'code': 'tg', 'name': 'Telegram', 'price': '0.12', 'count': 200, 'multi': False},
+    ],
+    # Brazil (50)
+    '50': [
+        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.20', 'count': 80, 'multi': False},
+        {'code': 'go', 'name': 'Google', 'price': '0.25', 'count': 60, 'multi': True},
+        {'code': 'ig', 'name': 'Instagram', 'price': '0.30', 'count': 45, 'multi': False},
+    ],
+    # Mexico (73)
+    '73': [
+        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.22', 'count': 70, 'multi': False},
+        {'code': 'go', 'name': 'Google', 'price': '0.28', 'count': 50, 'multi': True},
+        {'code': 'fb', 'name': 'Facebook', 'price': '0.25', 'count': 55, 'multi': False},
+    ],
+}
 
 # SMS text templates for different services
 SMS_TEMPLATES = {
@@ -122,7 +171,7 @@ class DaisySMSClientMock:
     Perfect for testing without spending money.
     """
     
-    def __init__(self, api_key: str = None, api_url: str = None):
+    def __init__(self, api_key: Optional[str] = None, api_url: Optional[str] = None):
         """
         Initialize mock client.
         
@@ -141,12 +190,16 @@ class DaisySMSClientMock:
         self._rental_counter += 1
         return self._rental_counter + random.randint(0, 10000)
     
-    def _generate_phone_number(self) -> str:
-        """Generate realistic US phone number."""
-        area_code = random.choice(US_AREA_CODES)
-        exchange = random.randint(200, 999)
-        subscriber = random.randint(1000, 9999)
-        return f"1{area_code}{exchange}{subscriber}"
+    def _generate_phone_number(self, country: str = '187') -> str:
+        """Generate realistic phone number for the given country."""
+        if country == '187':  # USA
+            area_code = random.choice(US_AREA_CODES)
+            exchange = random.randint(200, 999)
+            subscriber = random.randint(1000, 9999)
+            return f"1{area_code}{exchange}{subscriber}"
+        else:
+            # Generic international number
+            return f"{random.randint(1, 99)}{random.randint(100000000, 999999999)}"
     
     def _generate_sms_code(self) -> str:
         """Generate 6-digit SMS verification code."""
@@ -177,24 +230,33 @@ class DaisySMSClientMock:
             use_cache: Ignored in mock (for compatibility)
         
         Returns:
-            List of ServiceInfo with realistic prices
+            List of ServiceInfo with realistic prices for all countries
         
         Simulates: getPrices API response
         """
         services = []
-        for svc in MOCK_SERVICES_DATA:
-            service = ServiceInfo(
-                service_code=svc['code'],
-                name=svc['name'],
-                price_usd=Decimal(svc['price']),
-                available_numbers=svc['count'],
-                supports_multiple_sms=svc['multi'],
-                country='187'  # USA
-            )
-            services.append(service)
+        for country_code, country_services in MOCK_SERVICES_DATA.items():
+            for svc in country_services:
+                service = ServiceInfo(
+                    service_code=svc['code'],
+                    name=svc['name'],
+                    price_usd=Decimal(svc['price']),
+                    available_numbers=int(svc['count']),
+                    supports_multiple_sms=bool(svc['multi']),
+                    country=country_code
+                )
+                services.append(service)
         
         logger.debug(f'MOCK get_services() -> {len(services)} services')
         return services
+    
+    def _find_service(self, service_code: str, country: str = '187') -> Optional[Dict[str, Any]]:
+        """Find a service by code and country."""
+        country_services = MOCK_SERVICES_DATA.get(country, [])
+        for svc in country_services:
+            if svc['code'] == service_code:
+                return svc
+        return None
     
     def rent_number(
         self,
@@ -202,7 +264,8 @@ class DaisySMSClientMock:
         max_price_usd: Optional[Decimal] = None,
         areas: Optional[str] = None,
         carriers: Optional[str] = None,
-        number: Optional[str] = None
+        number: Optional[str] = None,
+        country: str = '187'
     ) -> RentalResult:
         """
         Rent a phone number for a service.
@@ -213,6 +276,7 @@ class DaisySMSClientMock:
             areas: Area codes (e.g., '212,718') - adds 20% to price
             carriers: Carriers (e.g., 'tmo,vz') - adds 20% to price
             number: Specific number (e.g., '11112223344') - adds 20% to price
+            country: Country code (e.g., '187' for USA)
         
         Returns:
             RentalResult with rental_id, phone_number, price_usd
@@ -224,16 +288,12 @@ class DaisySMSClientMock:
         
         Simulates: getNumber API response
         """
-        # Find service
-        service = None
-        for svc in MOCK_SERVICES_DATA:
-            if svc['code'] == service_code:
-                service = svc
-                break
+        # Find service in the specified country
+        service = self._find_service(service_code, country)
         
         if not service:
-            logger.warning(f'MOCK rent_number({service_code}) -> NO_NUMBERS')
-            raise NoNumbersAvailableError(f'No numbers available for {service_code}')
+            logger.warning(f'MOCK rent_number({service_code}, country={country}) -> NO_NUMBERS')
+            raise NoNumbersAvailableError(f'No numbers available for {service_code} in country {country}')
         
         price = Decimal(service['price'])
         
@@ -258,7 +318,7 @@ class DaisySMSClientMock:
         
         # Generate rental
         rental_id = self._generate_rental_id()
-        phone_number = self._generate_phone_number()
+        phone_number = self._generate_phone_number(country)
         
         # Deduct balance
         self._mock_balance -= price
@@ -268,6 +328,7 @@ class DaisySMSClientMock:
             'service_code': service_code,
             'phone_number': phone_number,
             'price_usd': price,
+            'country': country,
             'created_at': timezone.now(),
             'status': RentalStatus.WAITING,
             'poll_count': 0,  # Track polling for SMS simulation
@@ -280,7 +341,7 @@ class DaisySMSClientMock:
         )
         
         logger.info(
-            f'MOCK rent_number({service_code}) -> '
+            f'MOCK rent_number({service_code}, country={country}) -> '
             f'rental_id={rental_id}, phone={phone_number}, price=${price}'
         )
         
@@ -429,7 +490,7 @@ class DaisySMSClientMock:
     # Helper methods for testing
     # =========================================================================
     
-    def force_sms_arrival(self, rental_id: int, code: str = None) -> SMSResult:
+    def force_sms_arrival(self, rental_id: int, code: Optional[str] = None) -> SMSResult:
         """
         Force SMS to arrive for a rental (useful for deterministic tests).
         

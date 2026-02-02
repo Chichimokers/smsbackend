@@ -256,18 +256,31 @@ class RentalView(APIView):
             client = get_daisy_client()
             services = client.get_services(use_cache=True)
             
-            # Find the service
+            # Find the service in the specified country
             service = None
+            available_countries = []
             for s in services:
-                if s.service_code == service_code and s.country == country:
-                    service = s
-                    break
+                if s.service_code == service_code:
+                    available_countries.append(s.country)
+                    if s.country == country:
+                        service = s
+                        break
             
             if not service:
-                return Response(
-                    {'error': f'Servicio {service_code} no disponible'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
+                if available_countries:
+                    return Response(
+                        {
+                            'error': f'Servicio {service_code} no disponible en el pais {country}',
+                            'available_countries': list(set(available_countries)),
+                            'hint': 'Use GET /api/services/?service_code={} para ver paises disponibles'.format(service_code)
+                        },
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+                else:
+                    return Response(
+                        {'error': f'Servicio {service_code} no encontrado'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
             
             # Calculate price in CUP
             estimated_price_cup = ExchangeRate.usd_to_cup(service.price_usd)
@@ -284,6 +297,7 @@ class RentalView(APIView):
                 )
             
             # Rent from DaisySMS with optional parameters
+            # Note: DaisySMS API doesn't accept country param, country is implicit from service selection
             rental_result = client.rent_number(
                 service_code=service_code,
                 max_price_usd=max_price_usd,

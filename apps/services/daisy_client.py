@@ -3,6 +3,7 @@ DaisySMS API Client Service.
 Handles all communication with the DaisySMS API.
 """
 
+import json
 import logging
 import requests
 from decimal import Decimal
@@ -121,21 +122,112 @@ class DaisySMSClient:
         'ot': 'Otro',
     }
     
-    # Country codes mapping
+    # Country codes mapping (DaisySMS uses sms-activate country codes)
     COUNTRY_NAMES = {
-        '187': 'USA',
-        '1': 'Russia',
-        '7': 'Kazakhstan',
-        '86': 'China',
-        '91': 'India',
-        '44': 'UK',
-        '49': 'Germany',
+        '0': 'Russia',
+        '1': 'Ukraine',
+        '2': 'Kazakhstan',
+        '3': 'China',
+        '4': 'Philippines',
+        '5': 'Myanmar',
+        '6': 'Indonesia',
+        '7': 'Malaysia',
+        '8': 'Kenya',
+        '9': 'Tanzania',
+        '10': 'Vietnam',
+        '11': 'Kyrgyzstan',
+        '12': 'USA (Virtual)',
+        '14': 'Egypt',
+        '15': 'Israel',
+        '16': 'Hong Kong',
+        '17': 'Poland',
+        '18': 'UK',
+        '19': 'Madagascar',
+        '20': 'DR Congo',
+        '21': 'Nigeria',
+        '22': 'Macau',
+        '23': 'Estonia',
+        '24': 'Sri Lanka',
+        '25': 'Ivory Coast',
+        '26': 'Gambia',
+        '27': 'Serbia',
+        '28': 'Morocco',
+        '29': 'Cameroon',
+        '30': 'South Africa',
+        '31': 'Sweden',
+        '32': 'Netherlands',
         '33': 'France',
         '34': 'Spain',
+        '36': 'Canada',
+        '37': 'Turkey',
+        '38': 'Czech Republic',
         '39': 'Italy',
+        '40': 'Germany',
+        '41': 'Pakistan',
+        '43': 'Ireland',
+        '44': 'Portugal',
+        '46': 'Azerbaijan',
+        '47': 'Bangladesh',
+        '49': 'Austria',
+        '50': 'Brazil',
+        '51': 'Romania',
+        '52': 'Belgium',
+        '53': 'New Zealand',
+        '54': 'Australia',
+        '55': 'Finland',
+        '56': 'Hungary',
+        '57': 'Lithuania',
+        '58': 'Latvia',
+        '59': 'Moldova',
+        '60': 'Cambodia',
+        '61': 'Ghana',
+        '62': 'Colombia',
+        '63': 'Peru',
+        '64': 'Greece',
+        '65': 'Denmark',
+        '66': 'Norway',
+        '67': 'Slovakia',
+        '68': 'Slovenia',
+        '69': 'Bulgaria',
+        '70': 'Croatia',
+        '71': 'Nepal',
+        '72': 'Argentina',
+        '73': 'Mexico',
+        '74': 'Chile',
+        '75': 'Uganda',
+        '76': 'Uzbekistan',
+        '77': 'Georgia',
+        '78': 'Albania',
+        '79': 'Luxembourg',
+        '80': 'Switzerland',
+        '81': 'Japan',
+        '82': 'South Korea',
+        '83': 'Taiwan',
+        '84': 'Thailand',
+        '85': 'India',
+        '86': 'Singapore',
+        '87': 'UAE',
+        '88': 'Saudi Arabia',
+        '89': 'Tajikistan',
+        '90': 'Bolivia',
+        '91': 'Costa Rica',
+        '92': 'Ecuador',
+        '93': 'Paraguay',
+        '94': 'Uruguay',
+        '95': 'Venezuela',
+        '96': 'Panama',
+        '97': 'Dominican Republic',
+        '98': 'Guatemala',
+        '99': 'El Salvador',
+        '100': 'Honduras',
+        '101': 'Nicaragua',
+        '102': 'Puerto Rico',
+        '117': 'Zambia',
+        '129': 'Zimbabwe',
+        '187': 'USA',
     }
     
-    def __init__(self, api_key: str = None, api_url: str = None):
+    def __init__(self, api_key: Optional[str] = None, api_url: Optional[str] = None):
         """Initialize the DaisySMS client."""
         self.api_key = api_key or settings.DAISY_SMS_API_KEY
         self.api_url = api_url or settings.DAISY_SMS_API_URL
@@ -215,40 +307,42 @@ class DaisySMSClient:
         
         response = self._make_request({'action': 'getPrices'})
         
+        import json
         try:
-            data = eval(response) if response.startswith('{') else {}
-        except Exception:
-            # Try JSON parsing
-            import json
-            try:
-                data = json.loads(response)
-            except json.JSONDecodeError:
-                logger.error(f'Failed to parse services response: {response}')
-                raise DaisySMSError('Failed to parse services response')
+            data = json.loads(response) if response else {}
+        except json.JSONDecodeError as e:
+            logger.error(f'Failed to parse services response: {response[:500]}... Error: {e}')
+            raise DaisySMSError('Failed to parse services response from DaisySMS')
         
         services = []
         
         # Data structure: country_code => service_code => {price, count, multipart}
         for country_code, country_services in data.items():
-            country_name = self.COUNTRY_NAMES.get(country_code, country_code)
+            if not isinstance(country_services, dict):
+                continue
+            country_name = self.COUNTRY_NAMES.get(str(country_code), f'Country {country_code}')
             
             for service_code, service_data in country_services.items():
+                if not isinstance(service_data, dict):
+                    continue
                 try:
                     price = Decimal(str(service_data.get('price', '0')))
                     count = int(service_data.get('count', 0))
-                    multipart = service_data.get('multipart', '0') == '1'
+                    multipart = service_data.get('multipart', '0') == '1' or service_data.get('multipart', False) is True
+                    
+                    service_name = self.SERVICE_NAMES.get(service_code, service_code.upper())
                     
                     service = ServiceInfo(
                         service_code=service_code,
-                        name=self.SERVICE_NAMES.get(service_code, service_code.upper()),
+                        name=service_name,
                         price_usd=price,
                         available_numbers=count,
                         supports_multiple_sms=multipart,
-                        country=country_code
+                        country=str(country_code)
                     )
                     services.append(service)
                 except (ValueError, TypeError) as e:
-                    logger.warning(f'Failed to parse service {service_code}: {e}')
+                    logger.warning(f'Failed to parse service {service_code} for country {country_code}: {e}')
                     continue
         
         # Cache for 5 minutes
@@ -263,7 +357,8 @@ class DaisySMSClient:
         max_price_usd: Optional[Decimal] = None,
         areas: Optional[str] = None,
         carriers: Optional[str] = None,
-        number: Optional[str] = None
+        number: Optional[str] = None,
+        country: str = '187'
     ) -> RentalResult:
         """
         Rent a phone number for a service.
@@ -274,9 +369,14 @@ class DaisySMSClient:
             areas: Area codes (e.g., '212,718') - adds 20% to price
             carriers: Carriers (e.g., 'tmo,vz') - adds 20% to price
             number: Specific number (e.g., '11112223344') - adds 20% to price
+            country: Country code (default: '187' for USA) - for interface consistency
             
         Returns:
             RentalResult with rental_id, phone_number, and price_usd
+            
+        Note:
+            DaisySMS is a USA-focused service. The country parameter is included
+            for API consistency but the actual DaisySMS API primarily serves USA numbers.
         """
         params = {
             'action': 'getNumber',

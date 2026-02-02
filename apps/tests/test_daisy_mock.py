@@ -42,11 +42,15 @@ class TestDaisySMSClientMock:
         assert hasattr(service, 'available_numbers')
     
     def test_get_services_includes_whatsapp(self, mock_client):
-        """Test that WhatsApp service is included."""
+        """Test that WhatsApp service is included in multiple countries."""
         services = mock_client.get_services()
         wa_services = [s for s in services if s.service_code == 'wa']
-        assert len(wa_services) == 1
-        assert wa_services[0].name == 'WhatsApp'
+        # WhatsApp is available in multiple countries now
+        assert len(wa_services) >= 1
+        # Verify USA WhatsApp exists
+        wa_usa = [s for s in wa_services if s.country == '187']
+        assert len(wa_usa) == 1
+        assert wa_usa[0].name == 'WhatsApp'
     
     def test_rent_number_success(self, mock_client):
         """Test renting a number successfully."""
