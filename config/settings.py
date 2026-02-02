@@ -176,8 +176,11 @@ SERVICES_CACHE_TIMEOUT = 300
 # Polling interval for SMS checking (in seconds)
 SMS_POLLING_INTERVAL = 5
 
-# Rental duration default (in minutes)
-DEFAULT_RENTAL_DURATION_MINUTES = 15
+# Rental duration (in seconds)
+# WhatsApp (wa) = 7 minutes = 420 seconds
+# All other services = 420 seconds
+RENTAL_DURATION_WHATSAPP_SECONDS = 420  # 7 minutes
+RENTAL_DURATION_DEFAULT_SECONDS = 420   # 7 minutes
 
 # Logging
 LOGGING = {

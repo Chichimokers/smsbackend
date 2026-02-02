@@ -34,7 +34,7 @@ def test_rental(test_user):
         country='187',
         price_usd=Decimal('0.25'),
         price_cup=Decimal('1200.00'),
-        expires_at=timezone.now() + timedelta(minutes=15)
+        expires_at=timezone.now() + timedelta(seconds=420)
     )
 
 
@@ -52,7 +52,7 @@ class TestPhoneRentalModel:
             service_name='WhatsApp',
             price_usd=Decimal('0.25'),
             price_cup=Decimal('1200.00'),
-            expires_at=timezone.now() + timedelta(minutes=15)
+            expires_at=timezone.now() + timedelta(seconds=420)
         )
         
         assert rental.user == test_user
@@ -91,7 +91,7 @@ class TestPhoneRentalModel:
         """Test remaining_time_seconds property."""
         remaining = test_rental.remaining_time_seconds
         assert remaining > 0
-        assert remaining <= 15 * 60  # Max 15 minutes
+        assert remaining <= 420  # Max 420 seconds (7 minutes)
     
     def test_formatted_phone(self, test_rental):
         """Test formatted_phone property."""
@@ -107,7 +107,7 @@ class TestPhoneRentalModel:
             service_name='Google',
             price_usd=Decimal('0.30'),
             price_cup=Decimal('1440.00'),
-            expires_at=timezone.now() + timedelta(minutes=15)
+            expires_at=timezone.now() + timedelta(seconds=420)
         )
         assert rental.formatted_phone == '+12025551111'
     

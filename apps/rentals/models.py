@@ -149,6 +149,17 @@ class PhoneRental(models.Model):
         self.save()
     
     @classmethod
+    def get_duration_seconds(cls, service_code: str) -> int:
+        """
+        Get rental duration in seconds based on service code.
+        WhatsApp (wa) = 420 seconds (7 minutes)
+        All others = 420 seconds (7 minutes)
+        """
+        if service_code.lower() == 'wa':
+            return settings.RENTAL_DURATION_WHATSAPP_SECONDS
+        return settings.RENTAL_DURATION_DEFAULT_SECONDS
+    
+    @classmethod
     def create_rental(
         cls,
         user,
@@ -159,13 +170,13 @@ class PhoneRental(models.Model):
         price_usd: Decimal,
         price_cup: Decimal,
         country: str = '187',
-        duration_minutes: int = None
+        duration_seconds: int = None
     ):
         """Create a new rental record."""
-        if duration_minutes is None:
-            duration_minutes = settings.DEFAULT_RENTAL_DURATION_MINUTES
+        if duration_seconds is None:
+            duration_seconds = cls.get_duration_seconds(service_code)
         
-        expires_at = timezone.now() + timedelta(minutes=duration_minutes)
+        expires_at = timezone.now() + timedelta(seconds=duration_seconds)
         
         return cls.objects.create(
             user=user,
