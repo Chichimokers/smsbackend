@@ -104,6 +104,7 @@ class RentalView(APIView):
         
         # Only sync if ACTIVE (not already processed)
         if rental.status == PhoneRental.RentalStatus.ACTIVE:
+            logger.info(f'[Polling] Rental {rental.id} is ACTIVE, calling getStatus for daisy_rental_id={rental.daisy_rental_id}')
             try:
                 result = client.get_sms_status(rental.daisy_rental_id)
                 
@@ -141,6 +142,8 @@ class RentalView(APIView):
                 else:
                     # Expired but has SMS - just mark expired (no refund)
                     rental.mark_expired()
+        else:
+            logger.info(f'[Polling] Rental {rental.id} skipped - status is {rental.status} (not ACTIVE)')
         
         # Build rental data dict
         sms_messages = rental.sms_messages.all()
