@@ -119,6 +119,10 @@ Este email fue enviado automáticamente. Por favor no respondas a este mensaje.
     """
     
     try:
+        logger.info(f'[Email] Attempting to send verification email to {user.email}')
+        logger.info(f'[Email] SMTP Config - Host: {settings.EMAIL_HOST}, Port: {settings.EMAIL_PORT}, User: {settings.EMAIL_HOST_USER}')
+        logger.info(f'[Email] Verification URL: {verification_url}')
+        
         sent = send_mail(
             subject=subject,
             message=plain_message,
@@ -129,14 +133,15 @@ Este email fue enviado automáticamente. Por favor no respondas a este mensaje.
         )
         
         if sent:
-            logger.info(f'Verification email sent to {user.email}')
+            logger.info(f'[Email] SUCCESS - Verification email sent to {user.email}')
             return True
         else:
-            logger.warning(f'Failed to send verification email to {user.email}')
+            logger.warning(f'[Email] FAILED - send_mail returned 0 for {user.email}')
             return False
             
     except Exception as e:
-        logger.error(f'Error sending verification email to {user.email}: {e}')
+        logger.error(f'[Email] ERROR - Failed to send verification email to {user.email}')
+        logger.error(f'[Email] ERROR details: {type(e).__name__}: {e}')
         return False
 
 
@@ -150,5 +155,7 @@ def send_resend_verification_email(user) -> bool:
     Returns:
         True if email was sent successfully, False otherwise
     """
+    logger.info(f'[Email] Regenerating verification token for {user.email}')
     user.regenerate_verification_token()
+    logger.info(f'[Email] New token generated for {user.email}')
     return send_verification_email(user)
