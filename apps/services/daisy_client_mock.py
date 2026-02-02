@@ -348,9 +348,11 @@ class DaisySMSClientMock:
             - After that: 50% chance SMS arrives each poll
             - Once SMS arrives, it's stored and returned consistently
         """
+        logger.info(f'[DaisySMS MOCK] getStatus request - rental_id: {rental_id}')
+        
         # Check if rental exists
         if rental_id not in self._mock_rentals:
-            logger.warning(f'MOCK get_sms_status({rental_id}) -> NO_ACTIVATION')
+            logger.info(f'[DaisySMS MOCK] getStatus response - rental_id: {rental_id}, response: NO_ACTIVATION')
             raise RentalNotFoundError(f'Rental {rental_id} not found')
         
         rental = self._mock_rentals[rental_id]
@@ -358,7 +360,7 @@ class DaisySMSClientMock:
         # If SMS already received, return it
         if rental_id in self._mock_sms:
             sms = self._mock_sms[rental_id]
-            logger.debug(f'MOCK get_sms_status({rental_id}) -> STATUS_OK (cached)')
+            logger.info(f'[DaisySMS MOCK] getStatus response - rental_id: {rental_id}, response: STATUS_OK:{sms["code"]} (cached)')
             return SMSResult(
                 status=RentalStatus.OK,
                 code=sms['code'],
@@ -370,7 +372,7 @@ class DaisySMSClientMock:
         
         # First 2 polls always wait (simulate real-world delay)
         if rental['poll_count'] <= 2:
-            logger.debug(f'MOCK get_sms_status({rental_id}) -> STATUS_WAIT_CODE (poll #{rental["poll_count"]})')
+            logger.info(f'[DaisySMS MOCK] getStatus response - rental_id: {rental_id}, response: STATUS_WAIT_CODE (poll #{rental["poll_count"]})')
             return SMSResult(status=RentalStatus.WAITING)
         
         # After that, 50% chance SMS arrives
@@ -387,7 +389,7 @@ class DaisySMSClientMock:
             
             rental['status'] = RentalStatus.OK
             
-            logger.info(f'MOCK get_sms_status({rental_id}) -> STATUS_OK:{code}')
+            logger.info(f'[DaisySMS MOCK] getStatus response - rental_id: {rental_id}, response: STATUS_OK:{code}')
             
             return SMSResult(
                 status=RentalStatus.OK,
@@ -396,7 +398,7 @@ class DaisySMSClientMock:
             )
         
         # Still waiting
-        logger.debug(f'MOCK get_sms_status({rental_id}) -> STATUS_WAIT_CODE (poll #{rental["poll_count"]})')
+        logger.info(f'[DaisySMS MOCK] getStatus response - rental_id: {rental_id}, response: STATUS_WAIT_CODE (poll #{rental["poll_count"]})')
         return SMSResult(status=RentalStatus.WAITING)
     
     def cancel_rental(self, rental_id: int) -> bool:

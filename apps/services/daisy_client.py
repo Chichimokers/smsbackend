@@ -469,7 +469,11 @@ class DaisySMSClient:
         if include_text:
             params['text'] = '1'
         
+        logger.info(f'[DaisySMS] getStatus request - rental_id: {rental_id}')
+        
         response, headers = self._make_request(params, include_headers=True)
+        
+        logger.info(f'[DaisySMS] getStatus response - rental_id: {rental_id}, response: {response}, headers: {dict(headers)}')
         
         # Check for errors
         if response == 'NO_ACTIVATION':
