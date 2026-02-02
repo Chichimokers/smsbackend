@@ -34,27 +34,49 @@ jobs:
           EOF
       
       - name: Stop and remove everything including volumes
-        run: |
-          docker-compose down -v --remove-orphans || true
+        run: docker-compose down -v --remove-orphans || true
       
-      - name: Build and start containers
-        run: docker-compose up -d --build
+      - name: Start only database and redis first
+        run: docker-compose up -d db redis
       
       - name: Wait for database to be ready
-        run: sleep 15
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          sleep 10
+          until docker-compose exec -T db pg_isready -U postgres; do
+            echo "PostgreSQL not ready yet, waiting..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready!"
+      
+      - name: Build web container
+        run: docker-compose build web
       
       - name: Create migrations for all apps
         run: |
-          docker-compose exec -T web python manage.py makemigrations users --noinput
-          docker-compose exec -T web python manage.py makemigrations accounts --noinput
-          docker-compose exec -T web python manage.py makemigrations rentals --noinput
-          docker-compose exec -T web python manage.py makemigrations services --noinput
+          echo "Generating migrations inside container..."
+          docker-compose run --rm web python manage.py makemigrations users --noinput
+          docker-compose run --rm web python manage.py makemigrations accounts --noinput
+          docker-compose run --rm web python manage.py makemigrations rentals --noinput
+          docker-compose run --rm web python manage.py makemigrations services --noinput
       
       - name: Run migrations
-        run: docker-compose exec -T web python manage.py migrate --noinput
+        run: |
+          echo "Applying all migrations..."
+          docker-compose run --rm web python manage.py migrate --noinput
       
       - name: Collect static files
-        run: docker-compose exec -T web python manage.py collectstatic --noinput
+        run: docker-compose run --rm web python manage.py collectstatic --noinput
+      
+      - name: Start web container
+        run: docker-compose up -d web
+      
+      - name: Wait for web to be healthy
+        run: sleep 10
       
       - name: Show status
-        run: docker-compose ps
+        run: |
+          docker-compose ps
+          echo "---"
+          echo "Checking web container logs:"
+          docker-compose logs --tail=20 web
