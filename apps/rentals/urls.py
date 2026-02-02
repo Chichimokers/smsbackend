@@ -8,14 +8,13 @@ Simplified API with 3 endpoints:
 """
 
 from django.urls import path
-from .views import RentNumberView, RentalListView, CancelRentalView
+from .views import RentalView, CancelRentalView
 
 app_name = 'rentals'
 
 urlpatterns = [
     # POST: Create rental, GET: List all rentals with polling
-    path('', RentNumberView.as_view(), name='rent'),
-    path('', RentalListView.as_view(), name='list'),
+    path('', RentalView.as_view(), name='rentals'),
     
     # Cancel rental
     path('<int:pk>/cancel/', CancelRentalView.as_view(), name='cancel'),

@@ -32,9 +32,7 @@ jobs:
           MOCK_DAISY_SMS=false
           DEFAULT_EXCHANGE_RATE_CUP_PER_USD=4800
           EOF
-      
-      - name: Stop and remove everything including volumes
-        run: docker-compose down -v --remove-orphans || true
+
       
       - name: Start only database and redis first
         run: docker-compose up -d db redis

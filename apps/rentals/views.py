@@ -38,21 +38,187 @@ logger = logging.getLogger(__name__)
 MAX_ACTIVE_RENTALS = 5
 
 
-class RentNumberView(APIView):
+class RentalView(APIView):
     """
-    Create a new phone rental.
+    Main rental endpoint.
     
-    POST /api/rentals/
+    POST /api/rentals/ - Create a new phone rental
+    GET /api/rentals/ - List all rentals with live sync from DaisySMS
+    
+    POST:
     - Validates user has less than MAX_ACTIVE_RENTALS active
     - Validates user balance
     - Calls DaisySMS to rent number
     - Deducts balance
     - Creates rental record
+    
+    GET:
+    - Lists all rentals from DB for the user
+    - For ACTIVE rentals, syncs with DaisySMS to check SMS status
+    - Automatically processes refunds for expired rentals without SMS
+    - Returns complete info including remaining time, SMS codes, refund status
+    
+    Query params (GET):
+    - status: Filter by status (ACTIVE, SMS_RECEIVED, REFUNDED, CANCELLED, all)
+    - limit: Number of results (default 50)
+    - offset: Pagination offset (default 0)
     """
     
     permission_classes = [IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'rentals_create'
+    
+    def _process_refund(self, rental, account):
+        """
+        Process automatic refund for expired rental without SMS.
+        Returns the refund amount in CUP.
+        """
+        account.add_balance(rental.price_cup)
+        
+        # Create refund transaction
+        Transaction.create_refund_transaction(
+            user=rental.user,
+            amount_usd=rental.price_usd,
+            amount_cup=rental.price_cup,
+            rental=rental,
+            description=f'Reembolso automático: {rental.formatted_phone} (expirado sin SMS)'
+        )
+        
+        # Try to cancel in DaisySMS (might already be cancelled)
+        try:
+            client = get_daisy_client()
+            client.cancel_rental(rental.daisy_rental_id)
+        except DaisySMSError as e:
+            logger.warning(f'Could not cancel rental {rental.id} in DaisySMS: {e}')
+        
+        # Mark as refunded
+        rental.mark_refunded()
+        
+        logger.info(f'Rental {rental.id} expired and refunded: {rental.price_cup} CUP')
+        
+        return rental.price_cup
+    
+    def _sync_rental_with_daisy(self, rental, client, account):
+        """
+        Sync a single rental with DaisySMS.
+        Returns updated rental data dict.
+        """
+        refund_info = None
+        
+        # Only sync if ACTIVE (not already processed)
+        if rental.status == PhoneRental.RentalStatus.ACTIVE:
+            try:
+                result = client.get_sms_status(rental.daisy_rental_id)
+                
+                if result.status == RentalStatus.OK and result.code:
+                    # SMS received!
+                    if not rental.sms_messages.exists():
+                        SMS.create_from_daisy_response(
+                            phone_rental=rental,
+                            code=result.code,
+                            text=result.text or ''
+                        )
+                        logger.info(f'SMS received for rental {rental.id}: {result.code}')
+                
+                elif result.status == RentalStatus.CANCEL:
+                    # Rental was cancelled by DaisySMS
+                    rental.mark_cancelled()
+                    
+            except RentalNotFoundError:
+                # Rental not found in DaisySMS, mark as cancelled
+                logger.warning(f'Rental {rental.id} not found in DaisySMS')
+                rental.mark_cancelled()
+                
+            except DaisySMSError as e:
+                logger.warning(f'DaisySMS error syncing rental {rental.id}: {e}')
+            
+            # Check if expired and needs refund
+            if rental.status == PhoneRental.RentalStatus.ACTIVE and rental.is_expired:
+                if not rental.sms_messages.exists():
+                    # Expired without SMS - process refund
+                    refund_amount = self._process_refund(rental, account)
+                    refund_info = {
+                        'refund_amount_cup': str(refund_amount),
+                        'new_balance_cup': str(account.balance_cup)
+                    }
+                else:
+                    # Expired but has SMS - just mark expired (no refund)
+                    rental.mark_expired()
+        
+        # Build rental data dict
+        sms_messages = rental.sms_messages.all()
+        rental_data = {
+            'id': rental.id,
+            'daisy_rental_id': rental.daisy_rental_id,
+            'phone': rental.formatted_phone,
+            'service_code': rental.service_code,
+            'service_name': rental.service_name,
+            'status': rental.status,
+            'status_display': rental.get_status_display(),
+            'price_cup': str(rental.price_cup),
+            'price_usd': str(rental.price_usd),
+            'rented_at': rental.rented_at,
+            'expires_at': rental.expires_at,
+            'remaining_time_seconds': rental.remaining_time_seconds,
+            'has_sms': sms_messages.exists(),
+            'sms': SMSSerializer(sms_messages, many=True).data,
+            'refunded': rental.refunded,
+        }
+        
+        # Add refund info if applicable
+        if refund_info:
+            rental_data.update(refund_info)
+        elif rental.refunded:
+            rental_data['refund_amount_cup'] = str(rental.price_cup)
+        
+        return rental_data
+    
+    @transaction.atomic
+    def get(self, request):
+        """List all rentals with live sync from DaisySMS."""
+        user = request.user
+        
+        # Get user account (with lock for potential refunds)
+        account, _ = UserAccount.objects.select_for_update().get_or_create(user=user)
+        
+        # Get query params
+        status_filter = request.query_params.get('status', '').upper()
+        limit = int(request.query_params.get('limit', 50))
+        offset = int(request.query_params.get('offset', 0))
+        
+        # Base queryset
+        queryset = PhoneRental.objects.filter(user=user).select_for_update()
+        
+        # Apply status filter
+        if status_filter and status_filter != 'ALL':
+            queryset = queryset.filter(status=status_filter)
+        
+        # Order by most recent first
+        queryset = queryset.order_by('-created_at')
+        
+        # Get total before pagination
+        total = queryset.count()
+        
+        # Apply pagination
+        rentals = list(queryset[offset:offset + limit])
+        
+        # Get DaisySMS client (only if we have active rentals to sync)
+        has_active = any(r.status == PhoneRental.RentalStatus.ACTIVE for r in rentals)
+        client = get_daisy_client() if has_active else None
+        
+        # Sync each rental and build response
+        rentals_data = []
+        for rental in rentals:
+            rental_data = self._sync_rental_with_daisy(rental, client, account)
+            rentals_data.append(rental_data)
+        
+        return Response({
+            'rentals': rentals_data,
+            'balance_cup': str(account.balance_cup),
+            'total': total,
+            'limit': limit,
+            'offset': offset
+        })
     
     @transaction.atomic
     def post(self, request):
@@ -206,183 +372,6 @@ class RentNumberView(APIView):
                 {'error': 'Error al comunicarse con DaisySMS', 'detail': str(e)},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
-
-
-class RentalListView(APIView):
-    """
-    List all rentals for the authenticated user with live sync from DaisySMS.
-    
-    GET /api/rentals/
-    
-    This endpoint:
-    - Lists all rentals from DB for the user
-    - For ACTIVE rentals, syncs with DaisySMS to check SMS status
-    - Automatically processes refunds for expired rentals without SMS
-    - Returns complete info including remaining time, SMS codes, refund status
-    
-    Query params:
-    - status: Filter by status (ACTIVE, SMS_RECEIVED, REFUNDED, CANCELLED, all)
-    - limit: Number of results (default 50)
-    - offset: Pagination offset (default 0)
-    
-    Frontend should poll this endpoint every 3-5 seconds.
-    """
-    
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'rentals_list'
-    
-    def _process_refund(self, rental, account):
-        """
-        Process automatic refund for expired rental without SMS.
-        Returns the refund amount in CUP.
-        """
-        account.add_balance(rental.price_cup)
-        
-        # Create refund transaction
-        Transaction.create_refund_transaction(
-            user=rental.user,
-            amount_usd=rental.price_usd,
-            amount_cup=rental.price_cup,
-            rental=rental,
-            description=f'Reembolso automático: {rental.formatted_phone} (expirado sin SMS)'
-        )
-        
-        # Try to cancel in DaisySMS (might already be cancelled)
-        try:
-            client = get_daisy_client()
-            client.cancel_rental(rental.daisy_rental_id)
-        except DaisySMSError as e:
-            logger.warning(f'Could not cancel rental {rental.id} in DaisySMS: {e}')
-        
-        # Mark as refunded
-        rental.mark_refunded()
-        
-        logger.info(f'Rental {rental.id} expired and refunded: {rental.price_cup} CUP')
-        
-        return rental.price_cup
-    
-    def _sync_rental_with_daisy(self, rental, client, account):
-        """
-        Sync a single rental with DaisySMS.
-        Returns updated rental data dict.
-        """
-        refund_info = None
-        
-        # Only sync if ACTIVE (not already processed)
-        if rental.status == PhoneRental.RentalStatus.ACTIVE:
-            try:
-                result = client.get_sms_status(rental.daisy_rental_id)
-                
-                if result.status == RentalStatus.OK and result.code:
-                    # SMS received!
-                    if not rental.sms_messages.exists():
-                        SMS.create_from_daisy_response(
-                            phone_rental=rental,
-                            code=result.code,
-                            text=result.text or ''
-                        )
-                        logger.info(f'SMS received for rental {rental.id}: {result.code}')
-                
-                elif result.status == RentalStatus.CANCEL:
-                    # Rental was cancelled by DaisySMS
-                    rental.mark_cancelled()
-                    
-            except RentalNotFoundError:
-                # Rental not found in DaisySMS, mark as cancelled
-                logger.warning(f'Rental {rental.id} not found in DaisySMS')
-                rental.mark_cancelled()
-                
-            except DaisySMSError as e:
-                logger.warning(f'DaisySMS error syncing rental {rental.id}: {e}')
-            
-            # Check if expired and needs refund
-            if rental.status == PhoneRental.RentalStatus.ACTIVE and rental.is_expired:
-                if not rental.sms_messages.exists():
-                    # Expired without SMS - process refund
-                    refund_amount = self._process_refund(rental, account)
-                    refund_info = {
-                        'refund_amount_cup': str(refund_amount),
-                        'new_balance_cup': str(account.balance_cup)
-                    }
-                else:
-                    # Expired but has SMS - just mark expired (no refund)
-                    rental.mark_expired()
-        
-        # Build rental data dict
-        sms_messages = rental.sms_messages.all()
-        rental_data = {
-            'id': rental.id,
-            'daisy_rental_id': rental.daisy_rental_id,
-            'phone': rental.formatted_phone,
-            'service_code': rental.service_code,
-            'service_name': rental.service_name,
-            'status': rental.status,
-            'status_display': rental.get_status_display(),
-            'price_cup': str(rental.price_cup),
-            'price_usd': str(rental.price_usd),
-            'rented_at': rental.rented_at,
-            'expires_at': rental.expires_at,
-            'remaining_time_seconds': rental.remaining_time_seconds,
-            'has_sms': sms_messages.exists(),
-            'sms': SMSSerializer(sms_messages, many=True).data,
-            'refunded': rental.refunded,
-        }
-        
-        # Add refund info if applicable
-        if refund_info:
-            rental_data.update(refund_info)
-        elif rental.refunded:
-            rental_data['refund_amount_cup'] = str(rental.price_cup)
-        
-        return rental_data
-    
-    @transaction.atomic
-    def get(self, request):
-        """List all rentals with live sync from DaisySMS."""
-        user = request.user
-        
-        # Get user account (with lock for potential refunds)
-        account, _ = UserAccount.objects.select_for_update().get_or_create(user=user)
-        
-        # Get query params
-        status_filter = request.query_params.get('status', '').upper()
-        limit = int(request.query_params.get('limit', 50))
-        offset = int(request.query_params.get('offset', 0))
-        
-        # Base queryset
-        queryset = PhoneRental.objects.filter(user=user).select_for_update()
-        
-        # Apply status filter
-        if status_filter and status_filter != 'ALL':
-            queryset = queryset.filter(status=status_filter)
-        
-        # Order by most recent first
-        queryset = queryset.order_by('-created_at')
-        
-        # Get total before pagination
-        total = queryset.count()
-        
-        # Apply pagination
-        rentals = list(queryset[offset:offset + limit])
-        
-        # Get DaisySMS client (only if we have active rentals to sync)
-        has_active = any(r.status == PhoneRental.RentalStatus.ACTIVE for r in rentals)
-        client = get_daisy_client() if has_active else None
-        
-        # Sync each rental and build response
-        rentals_data = []
-        for rental in rentals:
-            rental_data = self._sync_rental_with_daisy(rental, client, account)
-            rentals_data.append(rental_data)
-        
-        return Response({
-            'rentals': rentals_data,
-            'balance_cup': str(account.balance_cup),
-            'total': total,
-            'limit': limit,
-            'offset': offset
-        })
 
 
 class CancelRentalView(APIView):
