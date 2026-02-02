@@ -296,6 +296,20 @@ class DaisySMSClient:
             
         Returns:
             List of ServiceInfo objects
+            
+        DaisySMS API Response Structure (getPricesVerification):
+        {
+            "service_code": {
+                "country_code": {
+                    "name": "Service Name",
+                    "ttl": 420,
+                    "count": 100,
+                    "cost": "0.10",
+                    "ltrPrice": "0.20",
+                    "repeatable": true
+                }
+            }
+        }
         """
         cache_key = 'daisy_sms_services'
         
@@ -305,7 +319,8 @@ class DaisySMSClient:
                 logger.debug('Returning cached services')
                 return cached
         
-        response = self._make_request({'action': 'getPrices'})
+        # Use getPricesVerification for detailed service info with prices
+        response = self._make_request({'action': 'getPricesVerification'})
         
         import json
         try:
@@ -316,28 +331,36 @@ class DaisySMSClient:
         
         services = []
         
-        # Data structure: country_code => service_code => {price, count, multipart}
-        for country_code, country_services in data.items():
-            if not isinstance(country_services, dict):
+        # Data structure: service_code => country_code => {name, ttl, count, cost, ltrPrice, repeatable}
+        for service_code, countries_data in data.items():
+            if not isinstance(countries_data, dict):
                 continue
-            country_name = self.COUNTRY_NAMES.get(str(country_code), f'Country {country_code}')
             
-            for service_code, service_data in country_services.items():
+            for country_code, service_data in countries_data.items():
                 if not isinstance(service_data, dict):
                     continue
                 try:
-                    price = Decimal(str(service_data.get('price', '0')))
+                    # DaisySMS uses 'cost' field for price
+                    price = Decimal(str(service_data.get('cost', '0')))
                     count = int(service_data.get('count', 0))
-                    multipart = service_data.get('multipart', '0') == '1' or service_data.get('multipart', False) is True
+                    # 'repeatable' indicates if multiple SMS can be received
+                    repeatable = service_data.get('repeatable', False)
+                    if isinstance(repeatable, str):
+                        repeatable = repeatable.lower() == 'true'
                     
-                    service_name = self.SERVICE_NAMES.get(service_code, service_code.upper())
+                    # Use name from API response, fallback to SERVICE_NAMES or code
+                    api_name = service_data.get('name')
+                    if api_name:
+                        service_name = str(api_name)
+                    else:
+                        service_name = self.SERVICE_NAMES.get(service_code) or service_code.upper()
                     
                     service = ServiceInfo(
                         service_code=service_code,
                         name=service_name,
                         price_usd=price,
                         available_numbers=count,
-                        supports_multiple_sms=multipart,
+                        supports_multiple_sms=bool(repeatable),
                         country=str(country_code)
                     )
                     services.append(service)
@@ -349,6 +372,7 @@ class DaisySMSClient:
         if use_cache and services:
             cache.set(cache_key, services, timeout=settings.SERVICES_CACHE_TIMEOUT)
         
+        logger.info(f'Loaded {len(services)} services from DaisySMS')
         return services
     
     def rent_number(

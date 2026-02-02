@@ -42,81 +42,49 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================================
-# MOCK DATA - Realistic services with actual DaisySMS prices
+# MOCK DATA - Realistic services with actual DaisySMS prices (from getPricesVerification)
 # ============================================================================
 
-# Services data with multiple countries
+# Services data - USA (187) only since DaisySMS is primarily USA-focused
+# Structure mirrors real API: service_code -> country_code -> {name, cost, count, repeatable}
+# Prices taken from actual DaisySMS API response
 MOCK_SERVICES_DATA = {
-    # USA (187) - Primary market
+    # USA (187) - Primary market with real prices
     '187': [
-        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.25', 'count': 100, 'multi': False},
-        {'code': 'go', 'name': 'Google', 'price': '0.30', 'count': 50, 'multi': True},
-        {'code': 'tg', 'name': 'Telegram', 'price': '0.20', 'count': 75, 'multi': False},
-        {'code': 'ig', 'name': 'Instagram', 'price': '0.35', 'count': 40, 'multi': False},
-        {'code': 'fb', 'name': 'Facebook', 'price': '0.30', 'count': 60, 'multi': False},
-        {'code': 'tw', 'name': 'Twitter/X', 'price': '0.40', 'count': 30, 'multi': False},
-        {'code': 'ds', 'name': 'Discord', 'price': '0.25', 'count': 80, 'multi': False},
-        {'code': 'ti', 'name': 'TikTok', 'price': '0.35', 'count': 45, 'multi': False},
-        {'code': 'ai', 'name': 'OpenAI', 'price': '0.50', 'count': 20, 'multi': False},
-        {'code': 'sp', 'name': 'Spotify', 'price': '0.30', 'count': 35, 'multi': False},
-        {'code': 'nf', 'name': 'Netflix', 'price': '0.45', 'count': 25, 'multi': False},
-        {'code': 'am', 'name': 'Amazon', 'price': '0.40', 'count': 30, 'multi': True},
-        {'code': 'ms', 'name': 'Microsoft', 'price': '0.35', 'count': 40, 'multi': True},
-        {'code': 'ap', 'name': 'Apple', 'price': '0.50', 'count': 15, 'multi': False},
-        {'code': 'ub', 'name': 'Uber', 'price': '0.30', 'count': 50, 'multi': False},
-        {'code': 'vi', 'name': 'Viber', 'price': '0.20', 'count': 60, 'multi': False},
-        {'code': 'li', 'name': 'LinkedIn', 'price': '0.40', 'count': 25, 'multi': False},
-        {'code': 'sn', 'name': 'Snapchat', 'price': '0.35', 'count': 35, 'multi': False},
-    ],
-    # UK (18)
-    '18': [
-        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.30', 'count': 45, 'multi': False},
-        {'code': 'go', 'name': 'Google', 'price': '0.35', 'count': 30, 'multi': True},
-        {'code': 'tg', 'name': 'Telegram', 'price': '0.25', 'count': 50, 'multi': False},
-        {'code': 'ig', 'name': 'Instagram', 'price': '0.40', 'count': 25, 'multi': False},
-        {'code': 'fb', 'name': 'Facebook', 'price': '0.35', 'count': 35, 'multi': False},
-    ],
-    # Canada (36)
-    '36': [
-        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.28', 'count': 60, 'multi': False},
-        {'code': 'go', 'name': 'Google', 'price': '0.32', 'count': 40, 'multi': True},
-        {'code': 'tg', 'name': 'Telegram', 'price': '0.22', 'count': 55, 'multi': False},
-        {'code': 'ai', 'name': 'OpenAI', 'price': '0.55', 'count': 15, 'multi': False},
-    ],
-    # Germany (40)
-    '40': [
-        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.35', 'count': 35, 'multi': False},
-        {'code': 'go', 'name': 'Google', 'price': '0.40', 'count': 25, 'multi': True},
-        {'code': 'tg', 'name': 'Telegram', 'price': '0.30', 'count': 40, 'multi': False},
-    ],
-    # Russia (0)
-    '0': [
-        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.10', 'count': 200, 'multi': False},
-        {'code': 'go', 'name': 'Google', 'price': '0.12', 'count': 150, 'multi': True},
-        {'code': 'tg', 'name': 'Telegram', 'price': '0.08', 'count': 300, 'multi': False},
-        {'code': 'vk', 'name': 'VKontakte', 'price': '0.05', 'count': 500, 'multi': False},
-    ],
-    # India (85)
-    '85': [
-        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.15', 'count': 150, 'multi': False},
-        {'code': 'go', 'name': 'Google', 'price': '0.18', 'count': 100, 'multi': True},
-        {'code': 'tg', 'name': 'Telegram', 'price': '0.12', 'count': 200, 'multi': False},
-    ],
-    # Brazil (50)
-    '50': [
-        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.20', 'count': 80, 'multi': False},
-        {'code': 'go', 'name': 'Google', 'price': '0.25', 'count': 60, 'multi': True},
-        {'code': 'ig', 'name': 'Instagram', 'price': '0.30', 'count': 45, 'multi': False},
-    ],
-    # Mexico (73)
-    '73': [
-        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.22', 'count': 70, 'multi': False},
-        {'code': 'go', 'name': 'Google', 'price': '0.28', 'count': 50, 'multi': True},
-        {'code': 'fb', 'name': 'Facebook', 'price': '0.25', 'count': 55, 'multi': False},
+        {'code': 'wa', 'name': 'WhatsApp', 'price': '0.60', 'count': 100, 'multi': True},
+        {'code': 'go', 'name': 'Google / Gmail / Youtube', 'price': '0.40', 'count': 100, 'multi': True},
+        {'code': 'tg', 'name': 'Telegram', 'price': '0.50', 'count': 100, 'multi': True},
+        {'code': 'ig', 'name': 'Instagram', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'fb', 'name': 'Facebook', 'price': '0.70', 'count': 100, 'multi': True},
+        {'code': 'tw', 'name': 'Twitter', 'price': '0.12', 'count': 100, 'multi': False},
+        {'code': 'ds', 'name': 'Discord', 'price': '0.10', 'count': 100, 'multi': False},
+        {'code': 'lf', 'name': 'TikTok', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'dr', 'name': 'OpenAI / ChatGPT', 'price': '0.05', 'count': 100, 'multi': False},
+        {'code': 'netflix', 'name': 'Netflix', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'am', 'name': 'Amazon / AWS', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'mm', 'name': 'Microsoft / Outlook / Hotmail', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'wx', 'name': 'Apple', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'ub', 'name': 'Uber', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'vi', 'name': 'Viber', 'price': '0.05', 'count': 100, 'multi': False},
+        {'code': 'tn', 'name': 'LinkedIn', 'price': '0.10', 'count': 100, 'multi': False},
+        {'code': 'fu', 'name': 'Snapchat', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'it', 'name': 'Cash App', 'price': '2.50', 'count': 100, 'multi': True},
+        {'code': 'ts', 'name': 'PayPal', 'price': '3.20', 'count': 100, 'multi': True},
+        {'code': 'yy', 'name': 'Venmo', 'price': '1.30', 'count': 100, 'multi': True},
+        {'code': 'chime', 'name': 'Chime', 'price': '3.60', 'count': 100, 'multi': True},
+        {'code': 'wfargo', 'name': 'Wells Fargo', 'price': '2.25', 'count': 100, 'multi': True},
+        {'code': 're', 'name': 'Coinbase', 'price': '0.25', 'count': 100, 'multi': True},
+        {'code': 'robinhood', 'name': 'Robinhood', 'price': '0.40', 'count': 100, 'multi': True},
+        {'code': 'ac', 'name': 'DoorDash', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'vz', 'name': 'Hinge', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'oi', 'name': 'Tinder', 'price': '0.20', 'count': 100, 'multi': True},
+        {'code': 'mo', 'name': 'Bumble', 'price': '0.18', 'count': 100, 'multi': True},
+        {'code': 'airbnb', 'name': 'Airbnb', 'price': '0.10', 'count': 100, 'multi': True},
+        {'code': 'instacart', 'name': 'Instacart', 'price': '0.15', 'count': 100, 'multi': True},
     ],
 }
 
-# SMS text templates for different services
+# SMS text templates for different services (using real DaisySMS service codes)
 SMS_TEMPLATES = {
     'wa': 'Your WhatsApp code is {code}. Do not share this code.',
     'go': 'G-{code} is your Google verification code.',
@@ -125,17 +93,29 @@ SMS_TEMPLATES = {
     'fb': '{code} is your Facebook confirmation code.',
     'tw': 'Your Twitter verification code is {code}.',
     'ds': 'Your Discord verification code is {code}.',
-    'ti': '{code} is your verification code for TikTok.',
-    'ai': 'Your OpenAI verification code is: {code}',
-    'sp': 'Your Spotify code is {code}. Don\'t share it.',
-    'nf': 'Your Netflix verification code is {code}.',
+    'lf': '{code} is your verification code for TikTok.',
+    'dr': 'Your OpenAI verification code is: {code}',
+    'netflix': 'Your Netflix verification code is {code}.',
     'am': 'Your Amazon OTP is {code}. Don\'t share.',
-    'ms': 'Your Microsoft account verification code is {code}',
-    'ap': 'Your Apple ID verification code is: {code}',
+    'mm': 'Your Microsoft account verification code is {code}',
+    'wx': 'Your Apple ID verification code is: {code}',
     'ub': 'Your Uber code is {code}.',
     'vi': 'Viber code: {code}',
-    'li': 'Your LinkedIn verification code is {code}.',
-    'sn': 'Your Snapchat code is {code}. Don\'t share.',
+    'tn': 'Your LinkedIn verification code is {code}.',
+    'fu': 'Your Snapchat code is {code}. Don\'t share.',
+    'it': 'Your Cash App code is {code}.',
+    'ts': 'PayPal: Your security code is {code}. It expires in 10 min.',
+    'yy': 'Venmo code: {code}. NEVER share this with anyone.',
+    'chime': 'Your Chime verification code is {code}.',
+    'wfargo': 'Wells Fargo: {code} is your verification code.',
+    're': 'Coinbase: Your verification code is {code}.',
+    'robinhood': 'Your Robinhood code is {code}.',
+    'ac': 'Your DoorDash verification code is {code}.',
+    'vz': 'Your Hinge code is {code}.',
+    'oi': 'Your Tinder code is {code}.',
+    'mo': 'Your Bumble verification code is {code}.',
+    'airbnb': 'Your Airbnb verification code is {code}.',
+    'instacart': 'Your Instacart code is {code}.',
 }
 
 # US Area codes for realistic phone numbers
