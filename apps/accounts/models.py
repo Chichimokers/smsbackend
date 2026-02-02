@@ -20,7 +20,7 @@ class ExchangeRate(models.Model):
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0.01'))],
-        help_text='Ejemplo: 4800 significa que 1 USD = 4800 CUP'
+        help_text='Ejemplo: 2400 significa que 1 USD = 2400 CUP (0.5 USD = 1200 CUP)'
     )
     notes = models.TextField('Notas', blank=True)
     created_at = models.DateTimeField('Fecha de creación', auto_now_add=True)

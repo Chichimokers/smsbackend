@@ -168,7 +168,7 @@ DAISY_SMS_API_URL = config('DAISY_SMS_API_URL', default='https://daisysms.com/st
 MOCK_DAISY_SMS = config('MOCK_DAISY_SMS', default=True, cast=bool)
 
 # Exchange Rate Configuration (Default value, actual stored in DB)
-DEFAULT_EXCHANGE_RATE_CUP_PER_USD = config('DEFAULT_EXCHANGE_RATE_CUP_PER_USD', default=4800, cast=float)
+DEFAULT_EXCHANGE_RATE_CUP_PER_USD = config('DEFAULT_EXCHANGE_RATE_CUP_PER_USD', default=2400, cast=float)
 
 # Cache timeout for services (5 minutes)
 SERVICES_CACHE_TIMEOUT = 300
