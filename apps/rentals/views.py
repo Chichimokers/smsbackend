@@ -13,7 +13,6 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.throttling import ScopedRateThrottle
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
@@ -65,8 +64,6 @@ class RentalView(APIView):
     """
     
     permission_classes = [IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'rentals_create'
     
     def _process_refund(self, rental, account):
         """
@@ -386,8 +383,6 @@ class CancelRentalView(APIView):
     """
     
     permission_classes = [IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'rentals_cancel'
     
     @transaction.atomic
     def post(self, request, pk):
