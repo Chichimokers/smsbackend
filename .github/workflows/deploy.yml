@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches: [main, master]
-  workflow_dispatch:  # Permite ejecutar manualmente
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -33,17 +33,15 @@ jobs:
           DEFAULT_EXCHANGE_RATE_CUP_PER_USD=4800
           EOF
       
-      
-      - name: Stop existing containers
-        run: docker-compose down || true
+      - name: Stop and remove everything including volumes
+        run: |
+          docker-compose down -v --remove-orphans || true
       
       - name: Build and start containers
         run: docker-compose up -d --build
       
-      - name: Wait for database
-        run: |
-          echo "Waiting for PostgreSQL..."
-          sleep 10
+      - name: Wait for database to be ready
+        run: sleep 15
       
       - name: Run migrations
         run: docker-compose exec -T web python manage.py migrate --noinput
