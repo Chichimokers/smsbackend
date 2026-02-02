@@ -55,11 +55,8 @@ urlpatterns = [
     path('api/v1/services/', include('apps.services.urls')),
     path('api/v1/rentals/', include('apps.rentals.urls')),
     
-    # Django Admin (moved to v1 for consistency)
+    # Django Admin - only under v1 API
     path('api/v1/admin/', admin.site.urls),
-    
-    # Direct admin access (backward compatibility)
-    path('admin/', admin.site.urls),
 ]
 
 # Admin site customization

@@ -129,6 +129,7 @@ STATIC_URL = '/static/'  # Ensure single leading slash, no trailing slash
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Admin URL configuration - fix double slash issue
+ADMIN_URL = '/api/v1/admin/'
 FORCE_SCRIPT_NAME = '/api/v1/admin/'
 
 # Default primary key field type
