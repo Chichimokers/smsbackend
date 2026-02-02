@@ -19,24 +19,24 @@ def api_root(request):
         'version': '1.0.0',
         'endpoints': {
             'auth': {
-                'register': 'POST /api/users/register/',
-                'login': 'POST /api/users/login/',
-                'logout': 'POST /api/users/logout/',
-                'refresh': 'POST /api/users/token/refresh/',
-                'profile': 'GET /api/users/profile/',
+                'register': 'POST /api/v1/users/register/',
+                'login': 'POST /api/v1/users/login/',
+                'logout': 'POST /api/v1/users/logout/',
+                'refresh': 'POST /api/v1/users/token/refresh/',
+                'profile': 'GET /api/v1/users/profile/',
             },
             'account': {
-                'balance': 'GET /api/account/balance/',
-                'transactions': 'GET /api/account/transactions/',
-                'exchange_rate': 'GET /api/account/exchange-rate/',
+                'balance': 'GET /api/v1/account/balance/',
+                'transactions': 'GET /api/v1/account/transactions/',
+                'exchange_rate': 'GET /api/v1/account/exchange-rate/',
             },
             'services': {
-                'list': 'GET /api/services/',
+                'list': 'GET /api/v1/services/',
             },
             'rentals': {
-                'create': 'POST /api/rentals/',
-                'list': 'GET /api/rentals/',
-                'cancel': 'POST /api/rentals/<id>/cancel/',
+                'create': 'POST /api/v1/rentals/',
+                'list': 'GET /api/v1/rentals/',
+                'cancel': 'POST /api/v1/rentals/<id>/cancel/',
             },
         }
     })
@@ -52,7 +52,13 @@ urlpatterns = [
     # API root
     path('api/', api_root, name='api-root'),
     
-    # App URLs
+    # API v1 endpoints
+    path('api/v1/users/', include('apps.users.urls')),
+    path('api/v1/account/', include('apps.accounts.urls')),
+    path('api/v1/services/', include('apps.services.urls')),
+    path('api/v1/rentals/', include('apps.rentals.urls')),
+    
+    # Legacy API endpoints (for backward compatibility)
     path('api/users/', include('apps.users.urls')),
     path('api/account/', include('apps.accounts.urls')),
     path('api/services/', include('apps.services.urls')),
