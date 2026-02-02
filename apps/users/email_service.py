@@ -16,7 +16,7 @@ def get_verification_url(token: str) -> str:
     """Build the verification URL for a given token."""
     # Use BACKEND_URL for the verification endpoint (renders HTML directly)
     base_url = settings.BACKEND_URL.rstrip('/')
-    return f"{base_url}/api/users/verify/{token}/"
+    return f"{base_url}/api/v1/users/verify/{token}/"
 
 
 def send_verification_email(user) -> bool:
