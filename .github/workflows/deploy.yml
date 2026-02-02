@@ -33,6 +33,7 @@ jobs:
           DEFAULT_EXCHANGE_RATE_CUP_PER_USD=4800
           EOF
       
+      
       - name: Stop existing containers
         run: docker-compose down || true
       
