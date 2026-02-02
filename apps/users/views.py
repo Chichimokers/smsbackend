@@ -21,6 +21,7 @@ class RegisterView(APIView):
     """User registration view with email verification."""
     
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []  # Override global auth classes
     
     def post(self, request):
         print(f"🔵 [DEBUG] RegisterView.post() called!")
@@ -28,6 +29,8 @@ class RegisterView(APIView):
         print(f"🔵 [DEBUG] Request headers: {dict(request.headers)}")
         print(f"🔵 [DEBUG] Request method: {request.method}")
         print(f"🔵 [DEBUG] Request path: {request.path}")
+        print(f"🔵 [DEBUG] Auth classes: {self.authentication_classes}")
+        print(f"🔵 [DEBUG] Permission classes: {self.permission_classes}")
         
         serializer = CustomRegisterSerializer(data=request.data)
         print(f"🔵 [DEBUG] Serializer created with data: {request.data}")
