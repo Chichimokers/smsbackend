@@ -3,7 +3,6 @@ Serializers for User app.
 """
 
 from rest_framework import serializers
-from dj_rest_auth.registration.serializers import RegisterSerializer
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -31,27 +30,36 @@ class UserDetailSerializer(serializers.ModelSerializer):
         return obj.get_full_name()
 
 
-class CustomRegisterSerializer(RegisterSerializer):
-    """Custom registration serializer with additional fields."""
+class CustomRegisterSerializer(serializers.Serializer):
+    """Custom registration serializer without username."""
     
-    username = None  # Remove username field
-    first_name = serializers.CharField(required=False, allow_blank=True)
-    last_name = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=True)
+    password1 = serializers.CharField(write_only=True, min_length=8)
+    password2 = serializers.CharField(write_only=True, min_length=8)
+    first_name = serializers.CharField(required=False, allow_blank=True, default='')
+    last_name = serializers.CharField(required=False, allow_blank=True, default='')
     
-    def get_cleaned_data(self):
-        return {
-            'email': self.validated_data.get('email', ''),
-            'password1': self.validated_data.get('password1', ''),
-            'first_name': self.validated_data.get('first_name', ''),
-            'last_name': self.validated_data.get('last_name', ''),
-        }
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError('Ya existe un usuario con este email.')
+        return value.lower()
     
-    def save(self, request):
-        user = super().save(request)
-        user.first_name = self.validated_data.get('first_name', '')
-        user.last_name = self.validated_data.get('last_name', '')
-        user.save()
+    def validate(self, data):
+        if data['password1'] != data['password2']:
+            raise serializers.ValidationError({'password2': 'Las contraseñas no coinciden.'})
+        return data
+    
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            password=validated_data['password1'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+        )
         return user
+    
+    def save(self, request=None):
+        return self.create(self.validated_data)
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
