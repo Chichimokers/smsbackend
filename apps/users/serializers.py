@@ -3,7 +3,7 @@ Serializers for User app.
 """
 
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 
 User = get_user_model()
 
@@ -60,6 +60,31 @@ class CustomRegisterSerializer(serializers.Serializer):
     
     def save(self, request=None):
         return self.create(self.validated_data)
+
+
+class LoginSerializer(serializers.Serializer):
+    """Serializer for user login."""
+    
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
+    
+    def validate(self, data):
+        email = data.get('email', '').lower()
+        password = data.get('password', '')
+        
+        if not email or not password:
+            raise serializers.ValidationError('Email y contraseña son requeridos.')
+        
+        user = authenticate(username=email, password=password)
+        
+        if not user:
+            raise serializers.ValidationError('Credenciales inválidas.')
+        
+        if not user.is_active:
+            raise serializers.ValidationError('Esta cuenta está desactivada.')
+        
+        data['user'] = user
+        return data
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):

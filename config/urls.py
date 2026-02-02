@@ -19,33 +19,25 @@ def api_root(request):
         'version': '1.0.0',
         'endpoints': {
             'auth': {
-                'register': '/api/auth/registration/',
-                'login': '/api/auth/login/',
-                'logout': '/api/auth/logout/',
-                'user': '/api/auth/user/',
-                'google': '/api/auth/google/',
+                'register': 'POST /api/users/register/',
+                'login': 'POST /api/users/login/',
+                'logout': 'POST /api/users/logout/',
+                'refresh': 'POST /api/users/token/refresh/',
+                'profile': 'GET /api/users/profile/',
             },
             'account': {
-                'balance': '/api/account/balance/',
-                'transactions': '/api/account/transactions/',
-                'exchange_rate': '/api/account/exchange-rate/',
+                'balance': 'GET /api/account/balance/',
+                'transactions': 'GET /api/account/transactions/',
+                'exchange_rate': 'GET /api/account/exchange-rate/',
             },
             'services': {
-                'list': '/api/services/',
-                'detail': '/api/services/<service_code>/',
+                'list': 'GET /api/services/',
             },
             'rentals': {
-                'rent': '/api/rentals/',
-                'list': '/api/rentals/list/',
-                'detail': '/api/rentals/<id>/',
-                'check_sms': '/api/rentals/<id>/check-sms/',
-                'cancel': '/api/rentals/<id>/cancel/',
-                'done': '/api/rentals/<id>/done/',
+                'create': 'POST /api/rentals/',
+                'list': 'GET /api/rentals/',
+                'cancel': 'POST /api/rentals/<id>/cancel/',
             },
-            'admin': {
-                'add_credit': '/api/account/admin/users/<user_id>/add-credit/',
-                'users': '/api/users/admin/users/',
-            }
         }
     })
 
@@ -59,13 +51,6 @@ urlpatterns = [
     
     # API root
     path('api/', api_root, name='api-root'),
-    
-    # Authentication (dj-rest-auth)
-    path('api/auth/', include('dj_rest_auth.urls')),
-    path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
-    
-    # Social auth (Google)
-    path('api/auth/', include('allauth.urls')),
     
     # App URLs
     path('api/users/', include('apps.users.urls')),

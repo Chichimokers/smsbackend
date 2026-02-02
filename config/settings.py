@@ -26,20 +26,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites',
     
     # Third party apps
     'rest_framework',
-    'rest_framework.authtoken',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
-    'dj_rest_auth',
-    'dj_rest_auth.registration',
     
     # Local apps
     'apps.users',
@@ -57,7 +49,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -132,9 +123,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
 
-# Sites framework
-SITE_ID = 1
-
 # REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -153,10 +141,9 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',
         'user': '1000/hour',
-        # Specific rates for rentals endpoints
-        'rentals_list': '120/hour',      # GET /api/rentals/ - polling every 30s = 120/hour
-        'rentals_create': '20/hour',     # POST /api/rentals/ - max 20 rentals/hour
-        'rentals_cancel': '60/hour',     # POST /api/rentals/<id>/cancel/
+        'rentals_list': '120/hour',
+        'rentals_create': '20/hour',
+        'rentals_cancel': '60/hour',
     }
 }
 
@@ -167,42 +154,6 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
-}
-
-# dj-rest-auth settings
-REST_AUTH = {
-    'USE_JWT': True,
-    'JWT_AUTH_COOKIE': 'sms-auth',
-    'JWT_AUTH_REFRESH_COOKIE': 'sms-refresh',
-    'JWT_AUTH_HTTPONLY': True,
-    'USER_DETAILS_SERIALIZER': 'apps.users.serializers.UserDetailSerializer',
-    'REGISTER_SERIALIZER': 'apps.users.serializers.CustomRegisterSerializer',
-}
-
-# AllAuth settings
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_VERIFICATION = 'none'  # Cambiar a 'mandatory' en producción
-ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-
-# Google OAuth
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': [
-            'profile',
-            'email',
-        ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-        },
-        'APP': {
-            'client_id': config('GOOGLE_OAUTH_CLIENT_ID', default=''),
-            'secret': config('GOOGLE_OAUTH_CLIENT_SECRET', default=''),
-            'key': ''
-        }
-    }
 }
 
 # CORS Settings
@@ -219,8 +170,6 @@ DAISY_SMS_API_KEY = config('DAISY_SMS_API_KEY', default='')
 DAISY_SMS_API_URL = config('DAISY_SMS_API_URL', default='https://daisysms.com/stubs/handler_api.php')
 
 # ===== MOCK CONFIGURATION =====
-# Set to True for development/testing (simulates DaisySMS without real API calls)
-# Set to False for production (uses real DaisySMS API - costs money)
 MOCK_DAISY_SMS = config('MOCK_DAISY_SMS', default=True, cast=bool)
 
 # Exchange Rate Configuration (Default value, actual stored in DB)
@@ -229,10 +178,10 @@ DEFAULT_EXCHANGE_RATE_CUP_PER_USD = config('DEFAULT_EXCHANGE_RATE_CUP_PER_USD', 
 # Cache timeout for services (5 minutes)
 SERVICES_CACHE_TIMEOUT = 300
 
-# Polling interval for SMS checking (in seconds) - for frontend reference
+# Polling interval for SMS checking (in seconds)
 SMS_POLLING_INTERVAL = 5
 
-# Rental duration default (in minutes) - DaisySMS gives around 15 minutes
+# Rental duration default (in minutes)
 DEFAULT_RENTAL_DURATION_MINUTES = 15
 
 # Logging
