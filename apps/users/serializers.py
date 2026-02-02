@@ -41,25 +41,38 @@ class CustomRegisterSerializer(serializers.Serializer):
     last_name = serializers.CharField(required=False, allow_blank=True, default='')
     
     def validate_email(self, value):
+        print(f"🟢 [SERIALIZER] Validating email: {value}")
         if User.objects.filter(email__iexact=value).exists():
+            print(f"🔴 [SERIALIZER] Email already exists: {value}")
             raise serializers.ValidationError('Ya existe un usuario con este email.')
+        print(f"🟢 [SERIALIZER] Email validation PASSED: {value}")
         return value.lower()
     
     def validate(self, data):
+        print(f"🟢 [SERIALIZER] validate() called with data: {data}")
         if data['password1'] != data['password2']:
+            print(f"🔴 [SERIALIZER] Passwords don't match")
             raise serializers.ValidationError({'password2': 'Las contraseñas no coinciden.'})
+        print(f"🟢 [SERIALIZER] Validation PASSED")
         return data
     
     def create(self, validated_data):
-        user = User.objects.create_user(
-            email=validated_data['email'],
-            password=validated_data['password1'],
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', ''),
-        )
-        return user
+        print(f"🟢 [SERIALIZER] create() called with validated_data: {validated_data}")
+        try:
+            user = User.objects.create_user(
+                email=validated_data['email'],
+                password=validated_data['password1'],
+                first_name=validated_data.get('first_name', ''),
+                last_name=validated_data.get('last_name', ''),
+            )
+            print(f"🟢 [SERIALIZER] User created successfully: {user}")
+            return user
+        except Exception as e:
+            print(f"🔴 [SERIALIZER] Failed to create user: {e}")
+            raise
     
     def save(self, request=None):
+        print(f"🟢 [SERIALIZER] save() called")
         return self.create(self.validated_data)
 
 

@@ -23,20 +23,48 @@ class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
     
     def post(self, request):
+        print(f"🔵 [DEBUG] RegisterView.post() called!")
+        print(f"🔵 [DEBUG] Request data: {request.data}")
+        print(f"🔵 [DEBUG] Request headers: {dict(request.headers)}")
+        print(f"🔵 [DEBUG] Request method: {request.method}")
+        print(f"🔵 [DEBUG] Request path: {request.path}")
+        
         serializer = CustomRegisterSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        print(f"🔵 [DEBUG] Serializer created with data: {request.data}")
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+            print(f"🔵 [DEBUG] Serializer validation: PASSED")
+            print(f"🔵 [DEBUG] Validated data: {serializer.validated_data}")
+        except Exception as e:
+            print(f"🔵 [DEBUG] Serializer validation FAILED: {e}")
+            raise
+        
+        try:
+            user = serializer.save()
+            print(f"🔵 [DEBUG] User created: {user}")
+            print(f"🔵 [DEBUG] User ID: {user.id}")
+            print(f"🔵 [DEBUG] User email: {user.email}")
+            print(f"🔵 [DEBUG] User is_verified: {user.is_verified}")
+            print(f"🔵 [DEBUG] User verification_token: {user.verification_token}")
+        except Exception as e:
+            print(f"🔵 [DEBUG] Failed to create user: {e}")
+            raise
         
         # Send verification email
+        print(f"🔵 [DEBUG] About to send verification email...")
         email_sent = send_verification_email(user)
+        print(f"🔵 [DEBUG] Email sent result: {email_sent}")
         
         if email_sent:
             logger.info(f'User {user.email} registered, verification email sent')
+            print(f"🔵 [DEBUG] Email sent successfully to {user.email}")
         else:
             logger.warning(f'User {user.email} registered, but verification email failed to send')
+            print(f"🔵 [DEBUG] Email FAILED to send to {user.email}")
         
         # Don't return tokens - user needs to verify email first
-        return Response({
+        response_data = {
             'user': {
                 'id': user.id,
                 'email': user.email,
@@ -45,7 +73,15 @@ class RegisterView(APIView):
             },
             'email_sent': email_sent,
             'message': 'Registro exitoso. Por favor revisa tu email para verificar tu cuenta.'
-        }, status=status.HTTP_201_CREATED)
+        }
+        
+        print(f"🔵 [DEBUG] Returning response: {response_data}")
+        
+        try:
+            return Response(response_data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print(f"🔵 [DEBUG] Failed to return Response: {e}")
+            raise
 
 
 class LoginView(APIView):
