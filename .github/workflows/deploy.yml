@@ -65,6 +65,18 @@ jobs:
           echo "Applying all migrations..."
           docker-compose run --rm web python manage.py migrate --noinput
       
+      - name: Create superuser admin
+        run: |
+          echo "Creating superuser admin..."
+          docker-compose run --rm web python manage.py shell -c "
+          from apps.users.models import User
+          if not User.objects.filter(email='admin@admin.com').exists():
+              User.objects.create_superuser(email='admin@admin.com', password='admin')
+              print('Superuser created: admin@admin.com / admin')
+          else:
+              print('Superuser already exists')
+          "
+      
       - name: Collect static files
         run: docker-compose run --rm web python manage.py collectstatic --noinput
       
