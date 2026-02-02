@@ -50,12 +50,10 @@ urlpatterns = [
     path('api/', api_root, name='api-root'),
     
     # API v1 endpoints
-    path('api/v1/', include([
-        ('users/', 'apps.users.urls'),
-        ('account/', 'apps.accounts.urls'),
-        ('services/', 'apps.services.urls'),
-        ('rentals/', 'apps.rentals.urls'),
-    ])),
+    path('api/v1/users/', include('apps.users.urls')),
+    path('api/v1/account/', include('apps.accounts.urls')),
+    path('api/v1/services/', include('apps.services.urls')),
+    path('api/v1/rentals/', include('apps.rentals.urls')),
     
     # Django Admin (moved to v1 for consistency)
     path('api/v1/admin/', admin.site.urls),
