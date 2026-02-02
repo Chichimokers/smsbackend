@@ -409,7 +409,7 @@ Header: `Authorization: Bearer <access_token>`
 **Endpoint:** `POST /api/rentals/`  
 **Auth:** Requerida
 
-**Request Body:**
+**Request Body (básico):**
 ```json
 {
   "service_code": "tg",
@@ -418,11 +418,33 @@ Header: `Authorization: Bearer <access_token>`
 }
 ```
 
+**Request Body (con parámetros opcionales):**
+```json
+{
+  "service_code": "tg",
+  "country": "187",
+  "max_price_usd": 2.00,
+  "areas": "212,718",
+  "carriers": "tmo,vz",
+  "number": "12125551234"
+}
+```
+
 | Campo | Tipo | Requerido | Descripción |
 |-------|------|-----------|-------------|
 | service_code | string | Sí | Código del servicio (tg, wa, go, etc.) |
 | country | string | No | Código de país (default: 187 = USA) |
 | max_price_usd | decimal | No | Precio máximo a pagar en USD |
+| areas | string | No | Códigos de área (ej: 212,718) - **Añade 20% al precio** |
+| carriers | string | No | Operadores: tmo, vz, att (ej: tmo,vz) - **Añade 20% al precio** |
+| number | string | No | Número específico (ej: 12125551234) - **Añade 20% al precio** |
+
+**Notas sobre parámetros opcionales:**
+- `areas`: Especifica qué códigos de área quieres (ej: 212 = Nueva York, 718 = Brooklyn)
+- `carriers`: Especifica qué operadora móvil (TMO = T-Mobile, VZ = Verizon, ATT = AT&T)
+- `number`: Solicita un número específico (si está disponible)
+- **Importante:** Estos parámetros añaden un **20% extra al precio** según la API de DaisySMS
+- Los parámetros son opcionales y pueden combinarse
 
 **Response (201 Created):**
 ```json
@@ -442,9 +464,17 @@ Header: `Authorization: Bearer <access_token>`
   "has_sms": false,
   "sms": [],
   "refunded": false,
-  "new_balance_cup": "47600.00"
+  "new_balance_cup": "47600.00",
+  "requested_areas": "212,718",
+  "price_markup_note": "Área específica: +20% al precio"
 }
 ```
+
+**Campos adicionales en response (cuando aplica):**
+- `requested_areas`: Muestra los códigos de área solicitados
+- `requested_carrier`: Muestra el operador solicitado
+- `requested_number`: Muestra el número solicitado
+- `price_markup_note`: Nota explicando el markup del 20%
 
 **Errores posibles:**
 
@@ -472,6 +502,47 @@ Header: `Authorization: Bearer <access_token>`
 {
   "error": "Servicio tg no disponible"
 }
+
+// Precio excede máximo especificado
+{
+  "error": "El precio excede el máximo especificado"
+}
+```
+
+**Ejemplos de uso:**
+
+Alquilar Telegram con área code específica (Nueva York):
+```bash
+curl -X POST https://inventory.cloudns.be/api/rentals/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service_code": "tg",
+    "areas": "212"
+  }'
+```
+
+Alquilar WhatsApp de T-Mobile:
+```bash
+curl -X POST https://inventory.cloudns.be/api/rentals/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service_code": "wa",
+    "carriers": "tmo"
+  }'
+```
+
+Alquilar Instagram de un número específico:
+```bash
+curl -X POST https://inventory.cloudns.be/api/rentals/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service_code": "ig",
+    "number": "12125551234",
+    "max_price_usd": 1.00
+  }'
 ```
 
 ---
