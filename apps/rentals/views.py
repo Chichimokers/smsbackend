@@ -121,18 +121,62 @@ class RentalView(APIView):
                         logger.info(f'[Polling] Rental {rental.id} - SMS saved to DB')
                 
                 elif result.status == RentalStatus.CANCEL:
-                    # Rental was cancelled by DaisySMS
-                    logger.info(f'[Polling] Rental {rental.id} - Cancelled by DaisySMS')
-                    rental.mark_cancelled()
+                    # Rental was cancelled by DaisySMS - process refund
+                    logger.info(f'[Polling] Rental {rental.id} - Cancelled by DaisySMS, processing refund')
+                    
+                    # Refund to user
+                    account.add_balance(rental.price_cup)
+                    
+                    # Create refund transaction
+                    Transaction.create_refund_transaction(
+                        user=rental.user,
+                        amount_usd=rental.price_usd,
+                        amount_cup=rental.price_cup,
+                        rental=rental,
+                        description=f'Reembolso automático: {rental.formatted_phone} (cancelado por DaisySMS)'
+                    )
+                    
+                    # Mark as refunded (not just cancelled)
+                    rental.mark_refunded()
+                    
+                    # Set refund info for response
+                    refund_info = {
+                        'refund_amount_cup': str(rental.price_cup),
+                        'new_balance_cup': str(account.balance_cup)
+                    }
+                    
+                    logger.info(f'[Polling] Rental {rental.id} - Refunded {rental.price_cup} CUP due to STATUS_CANCEL')
                 
                 elif result.status == RentalStatus.WAITING:
                     # Still waiting for SMS - this is normal, just log it
                     logger.info(f'[Polling] Rental {rental.id} - Still waiting for SMS (STATUS_WAIT_CODE)')
                     
             except RentalNotFoundError:
-                # Rental not found in DaisySMS (NO_ACTIVATION), mark as cancelled
-                logger.warning(f'[Polling] Rental {rental.id} - NO_ACTIVATION from DaisySMS, marking cancelled')
-                rental.mark_cancelled()
+                # Rental not found in DaisySMS (NO_ACTIVATION), process refund
+                logger.warning(f'[Polling] Rental {rental.id} - NO_ACTIVATION from DaisySMS, processing refund')
+                
+                # Refund to user
+                account.add_balance(rental.price_cup)
+                
+                # Create refund transaction
+                Transaction.create_refund_transaction(
+                    user=rental.user,
+                    amount_usd=rental.price_usd,
+                    amount_cup=rental.price_cup,
+                    rental=rental,
+                    description=f'Reembolso automático: {rental.formatted_phone} (NO_ACTIVATION en DaisySMS)'
+                )
+                
+                # Mark as refunded
+                rental.mark_refunded()
+                
+                # Set refund info for response
+                refund_info = {
+                    'refund_amount_cup': str(rental.price_cup),
+                    'new_balance_cup': str(account.balance_cup)
+                }
+                
+                logger.info(f'[Polling] Rental {rental.id} - Refunded {rental.price_cup} CUP due to NO_ACTIVATION')
                 
             except DaisySMSError as e:
                 logger.warning(f'[Polling] Rental {rental.id} - DaisySMS error: {e}')
