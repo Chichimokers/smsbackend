@@ -34,10 +34,10 @@ jobs:
           EOF
       
       - name: Stop existing containers
-        run: docker compose down || true
+        run: docker-compose down || true
       
       - name: Build and start containers
-        run: docker compose up -d --build
+        run: docker-compose up -d --build
       
       - name: Wait for database
         run: |
@@ -45,10 +45,10 @@ jobs:
           sleep 10
       
       - name: Run migrations
-        run: docker compose exec -T web python manage.py migrate --noinput
+        run: docker-compose exec -T web python manage.py migrate --noinput
       
       - name: Collect static files
-        run: docker compose exec -T web python manage.py collectstatic --noinput
+        run: docker-compose exec -T web python manage.py collectstatic --noinput
       
       - name: Show status
-        run: docker compose ps
+        run: docker-compose ps
