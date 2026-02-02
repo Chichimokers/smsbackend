@@ -4,10 +4,10 @@ Uses Gmail SMTP for sending emails.
 """
 
 import logging
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
 
 logger = logging.getLogger(__name__)
 
@@ -124,22 +124,47 @@ Este email fue enviado automáticamente. Por favor no respondas a este mensaje.
         logger.info(f'[Email] SMTP Config - Host: {settings.EMAIL_HOST}, Port: {settings.EMAIL_PORT}, User: {settings.EMAIL_HOST_USER}')
         logger.info(f'[Email] Verification URL: {verification_url}')
         
-        sent = send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = settings.DEFAULT_FROM_EMAIL
+        msg['To'] = user.email
         
-        if sent:
-            logger.info(f'[Email] SUCCESS - Verification email sent to {user.email}')
-            return True
-        else:
-            logger.warning(f'[Email] FAILED - send_mail returned 0 for {user.email}')
-            return False
+        # Attach both plain text and HTML versions
+        part1 = MIMEText(plain_message, 'plain')
+        part2 = MIMEText(html_message, 'html')
+        msg.attach(part1)
+        msg.attach(part2)
+        
+        logger.info(f'[Email] Connecting to SMTP server...')
+        
+        # Connect to SMTP server with timeout
+        server = smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=30)
+        server.set_debuglevel(0)  # Set to 1 for debug output
+        
+        logger.info(f'[Email] Starting TLS...')
+        server.starttls()
+        
+        logger.info(f'[Email] Logging in...')
+        server.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
+        
+        logger.info(f'[Email] Sending message...')
+        server.sendmail(settings.EMAIL_HOST_USER, [user.email], msg.as_string())
+        
+        logger.info(f'[Email] Closing connection...')
+        server.quit()
+        
+        logger.info(f'[Email] SUCCESS - Verification email sent to {user.email}')
+        return True
             
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error(f'[Email] AUTH ERROR - Invalid credentials for {settings.EMAIL_HOST_USER}')
+        logger.error(f'[Email] ERROR details: {e}')
+        return False
+    except smtplib.SMTPException as e:
+        logger.error(f'[Email] SMTP ERROR - Failed to send email to {user.email}')
+        logger.error(f'[Email] ERROR details: {type(e).__name__}: {e}')
+        return False
     except Exception as e:
         logger.error(f'[Email] ERROR - Failed to send verification email to {user.email}')
         logger.error(f'[Email] ERROR details: {type(e).__name__}: {e}')
