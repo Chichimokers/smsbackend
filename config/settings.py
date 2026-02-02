@@ -165,6 +165,13 @@ CORS_ALLOWED_ORIGINS = config(
 )
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF Trusted Origins (for admin and forms)
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://inventory.cloudns.be,http://localhost:8000,http://127.0.0.1:8000',
+    cast=Csv()
+)
+
 # DaisySMS API Configuration
 DAISY_SMS_API_KEY = config('DAISY_SMS_API_KEY', default='')
 DAISY_SMS_API_URL = config('DAISY_SMS_API_URL', default='https://daisysms.com/stubs/handler_api.php')
