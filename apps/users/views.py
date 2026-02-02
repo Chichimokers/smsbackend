@@ -9,8 +9,6 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404, redirect
-from django.conf import settings
 
 from .serializers import UserDetailSerializer, UserUpdateSerializer, CustomRegisterSerializer, LoginSerializer
 from .email_service import send_verification_email, send_resend_verification_email
@@ -87,31 +85,137 @@ class VerifyEmailView(APIView):
     GET /api/auth/verify/<uuid:token>/
     
     This endpoint is called when user clicks the link in their email.
-    It verifies the account and redirects to frontend.
+    It verifies the account and shows an HTML response page.
     """
     
     permission_classes = [permissions.AllowAny]
     
+    def _render_html(self, status_type: str, title: str, message: str, submessage: str = ''):
+        """Render an HTML response page."""
+        # Colors based on status
+        colors = {
+            'success': {'bg': '#10B981', 'icon': '✓'},
+            'error': {'bg': '#EF4444', 'icon': '✗'},
+            'warning': {'bg': '#F59E0B', 'icon': '!'},
+        }
+        color = colors.get(status_type, colors['error'])
+        
+        html = f"""
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>{title} - SMS Rental</title>
+            <style>
+                * {{
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }}
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                }}
+                .card {{
+                    background: white;
+                    border-radius: 20px;
+                    padding: 40px;
+                    max-width: 450px;
+                    width: 100%;
+                    text-align: center;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                }}
+                .icon {{
+                    width: 80px;
+                    height: 80px;
+                    background: {color['bg']};
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 24px;
+                    font-size: 40px;
+                    color: white;
+                }}
+                h1 {{
+                    color: #1f2937;
+                    font-size: 24px;
+                    margin-bottom: 12px;
+                }}
+                p {{
+                    color: #6b7280;
+                    font-size: 16px;
+                    line-height: 1.6;
+                    margin-bottom: 8px;
+                }}
+                .submessage {{
+                    font-size: 14px;
+                    color: #9ca3af;
+                }}
+                .logo {{
+                    margin-bottom: 24px;
+                    font-size: 28px;
+                    font-weight: bold;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="logo">SMS Rental</div>
+                <div class="icon">{color['icon']}</div>
+                <h1>{title}</h1>
+                <p>{message}</p>
+                {f'<p class="submessage">{submessage}</p>' if submessage else ''}
+            </div>
+        </body>
+        </html>
+        """
+        return html
+    
     def get(self, request, token):
+        from django.http import HttpResponse
+        
         try:
             user = User.objects.get(verification_token=token)
         except User.DoesNotExist:
-            # Redirect to frontend with error
-            frontend_url = settings.FRONTEND_URL.rstrip('/')
-            return redirect(f'{frontend_url}/verify-email?status=invalid')
+            html = self._render_html(
+                'error',
+                'Enlace inválido',
+                'El enlace de verificación es inválido o ha expirado.',
+                'Si necesitas un nuevo enlace, solicítalo desde la aplicación.'
+            )
+            return HttpResponse(html, content_type='text/html', status=400)
         
         if user.is_verified:
-            # Already verified - redirect to frontend
-            frontend_url = settings.FRONTEND_URL.rstrip('/')
-            return redirect(f'{frontend_url}/verify-email?status=already_verified')
+            html = self._render_html(
+                'warning',
+                'Ya verificado',
+                'Tu cuenta ya estaba verificada.',
+                'Puedes cerrar esta ventana e iniciar sesión.'
+            )
+            return HttpResponse(html, content_type='text/html')
         
         # Verify the user
         user.verify_email()
         logger.info(f'User {user.email} verified their email')
         
-        # Redirect to frontend with success
-        frontend_url = settings.FRONTEND_URL.rstrip('/')
-        return redirect(f'{frontend_url}/verify-email?status=success')
+        html = self._render_html(
+            'success',
+            '¡Cuenta verificada!',
+            'Tu email ha sido verificado exitosamente.',
+            'Ya puedes cerrar esta ventana e iniciar sesión en la aplicación.'
+        )
+        return HttpResponse(html, content_type='text/html')
 
 
 class ResendVerificationView(APIView):

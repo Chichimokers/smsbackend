@@ -5,6 +5,20 @@ from django.db import migrations, models
 import django.utils.timezone
 
 
+def generate_unique_tokens(apps, schema_editor):
+    """Generate unique verification tokens for existing users."""
+    User = apps.get_model('users', 'User')
+    for user in User.objects.all():
+        user.verification_token = uuid.uuid4()
+        user.save(update_fields=['verification_token'])
+
+
+def set_existing_users_verified(apps, schema_editor):
+    """Set existing users as verified (they registered before verification was required)."""
+    User = apps.get_model('users', 'User')
+    User.objects.all().update(is_verified=True)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -12,20 +26,38 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Step 1: Add is_verified field
         migrations.AddField(
             model_name='user',
             name='is_verified',
             field=models.BooleanField(default=False, help_text='Indica si el usuario ha verificado su email.', verbose_name='verificado'),
         ),
+        
+        # Step 2: Add verification_token WITHOUT unique constraint first
         migrations.AddField(
             model_name='user',
             name='verification_token',
-            field=models.UUIDField(default=uuid.uuid4, help_text='Token único para verificar el email.', unique=True, verbose_name='token de verificación'),
+            field=models.UUIDField(default=uuid.uuid4, help_text='Token único para verificar el email.', null=True, verbose_name='token de verificación'),
         ),
+        
+        # Step 3: Add verification_token_created_at
         migrations.AddField(
             model_name='user',
             name='verification_token_created_at',
             field=models.DateTimeField(auto_now_add=True, default=django.utils.timezone.now, verbose_name='fecha de creación del token'),
             preserve_default=False,
+        ),
+        
+        # Step 4: Generate unique tokens for existing users
+        migrations.RunPython(generate_unique_tokens, migrations.RunPython.noop),
+        
+        # Step 5: Set existing users as verified
+        migrations.RunPython(set_existing_users_verified, migrations.RunPython.noop),
+        
+        # Step 6: Now add the unique constraint
+        migrations.AlterField(
+            model_name='user',
+            name='verification_token',
+            field=models.UUIDField(default=uuid.uuid4, help_text='Token único para verificar el email.', unique=True, verbose_name='token de verificación'),
         ),
     ]
