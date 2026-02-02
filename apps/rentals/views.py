@@ -107,31 +107,39 @@ class RentalView(APIView):
             logger.info(f'[Polling] Rental {rental.id} is ACTIVE, calling getStatus for daisy_rental_id={rental.daisy_rental_id}')
             try:
                 result = client.get_sms_status(rental.daisy_rental_id)
+                logger.info(f'[Polling] Rental {rental.id} - DaisySMS returned status: {result.status}')
                 
                 if result.status == RentalStatus.OK and result.code:
                     # SMS received!
+                    logger.info(f'[Polling] Rental {rental.id} - SMS received with code: {result.code}')
                     if not rental.sms_messages.exists():
                         SMS.create_from_daisy_response(
                             phone_rental=rental,
                             code=result.code,
                             text=result.text or ''
                         )
-                        logger.info(f'SMS received for rental {rental.id}: {result.code}')
+                        logger.info(f'[Polling] Rental {rental.id} - SMS saved to DB')
                 
                 elif result.status == RentalStatus.CANCEL:
                     # Rental was cancelled by DaisySMS
+                    logger.info(f'[Polling] Rental {rental.id} - Cancelled by DaisySMS')
                     rental.mark_cancelled()
+                
+                elif result.status == RentalStatus.WAITING:
+                    # Still waiting for SMS - this is normal, just log it
+                    logger.info(f'[Polling] Rental {rental.id} - Still waiting for SMS (STATUS_WAIT_CODE)')
                     
             except RentalNotFoundError:
-                # Rental not found in DaisySMS, mark as cancelled
-                logger.warning(f'Rental {rental.id} not found in DaisySMS')
+                # Rental not found in DaisySMS (NO_ACTIVATION), mark as cancelled
+                logger.warning(f'[Polling] Rental {rental.id} - NO_ACTIVATION from DaisySMS, marking cancelled')
                 rental.mark_cancelled()
                 
             except DaisySMSError as e:
-                logger.warning(f'DaisySMS error syncing rental {rental.id}: {e}')
+                logger.warning(f'[Polling] Rental {rental.id} - DaisySMS error: {e}')
             
             # Check if expired and needs refund
             if rental.status == PhoneRental.RentalStatus.ACTIVE and rental.is_expired:
+                logger.info(f'[Polling] Rental {rental.id} - Rental expired, checking for refund')
                 if not rental.sms_messages.exists():
                     # Expired without SMS - process refund
                     refund_amount = self._process_refund(rental, account)
@@ -139,9 +147,11 @@ class RentalView(APIView):
                         'refund_amount_cup': str(refund_amount),
                         'new_balance_cup': str(account.balance_cup)
                     }
+                    logger.info(f'[Polling] Rental {rental.id} - Refunded {refund_amount} CUP')
                 else:
                     # Expired but has SMS - just mark expired (no refund)
                     rental.mark_expired()
+                    logger.info(f'[Polling] Rental {rental.id} - Marked as expired (has SMS, no refund)')
         else:
             logger.info(f'[Polling] Rental {rental.id} skipped - status is {rental.status} (not ACTIVE)')
         

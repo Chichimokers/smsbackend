@@ -473,7 +473,12 @@ class DaisySMSClient:
         
         response, headers = self._make_request(params, include_headers=True)
         
-        logger.info(f'[DaisySMS] getStatus response - rental_id: {rental_id}, response: {response}, headers: {dict(headers)}')
+        # Log response (only show X-Text if present)
+        x_text = headers.get('X-Text', '')
+        if x_text:
+            logger.info(f'[DaisySMS] getStatus response - rental_id: {rental_id}, response: {response}, X-Text: "{x_text}"')
+        else:
+            logger.info(f'[DaisySMS] getStatus response - rental_id: {rental_id}, response: {response}')
         
         # Check for errors
         if response == 'NO_ACTIVATION':
