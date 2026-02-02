@@ -1,0 +1,54 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:  # Permite ejecutar manualmente
+
+jobs:
+  deploy:
+    name: Deploy SMS Project
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create .env file
+        run: |
+          cat > .env << 'EOF'
+          DEBUG=False
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+          DB_ENGINE=django.db.backends.postgresql
+          DB_NAME=smsproject
+          DB_USER=postgres
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_HOST=db
+          DB_PORT=5432
+          DAISY_SMS_API_KEY=${{ secrets.DAISY_SMS_API_KEY }}
+          DAISY_SMS_API_URL=https://daisysms.com/stubs/handler_api.php
+          CACHE_URL=redis://redis:6379/1
+          MOCK_DAISY_SMS=false
+          DEFAULT_EXCHANGE_RATE_CUP_PER_USD=4800
+          EOF
+      
+      - name: Stop existing containers
+        run: docker compose down || true
+      
+      - name: Build and start containers
+        run: docker compose up -d --build
+      
+      - name: Wait for database
+        run: |
+          echo "Waiting for PostgreSQL..."
+          sleep 10
+      
+      - name: Run migrations
+        run: docker compose exec -T web python manage.py migrate --noinput
+      
+      - name: Collect static files
+        run: docker compose exec -T web python manage.py collectstatic --noinput
+      
+      - name: Show status
+        run: docker compose ps
