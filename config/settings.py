@@ -156,7 +156,7 @@ CORS_ALLOW_CREDENTIALS = True
 # CSRF Trusted Origins (for admin and forms)
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
-    default='https://inventory.cloudns.be,http://localhost:8000,http://127.0.0.1:8000',
+    default='https://inventory.cloudns.be,http://localhost:8000,http://127.0.0.1:8000,https://smsrenta.com',
     cast=Csv()
 )
 
