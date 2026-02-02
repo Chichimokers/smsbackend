@@ -7,6 +7,17 @@ from pathlib import Path
 from datetime import timedelta
 from decouple import config, Csv
 
+
+def merge_cors_origins(base_origins, additional_origins):
+    """Merge base origins with additional origins."""
+    if isinstance(base_origins, str):
+        base_list = base_origins.split(',')
+    else:
+        base_list = list(base_origins)
+    
+    all_origins = base_list + additional_origins
+    return all_origins
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -154,11 +165,21 @@ CORS_ALLOWED_ORIGINS = config(
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Trusted Origins (for admin and forms)
-CSRF_TRUSTED_ORIGINS = config(
+base_csrf_origins = config(
     'CSRF_TRUSTED_ORIGINS',
     default='https://inventory.cloudns.be,http://localhost:8000,http://127.0.0.1:8000,https://smsrenta.com',
     cast=Csv()
 )
+
+# Additional origins list for CSRF
+additional_csrf_origins = [
+    'https://inventory.cloudns.be/api/v1',
+    'http://localhost:8000/api/v1', 
+    'http://127.0.0.1:8000/api/v1',
+]
+
+# Merge CSRF origins
+CSRF_TRUSTED_ORIGINS = merge_cors_origins(base_csrf_origins, additional_csrf_origins)
 
 # DaisySMS API Configuration
 DAISY_SMS_API_KEY = config('DAISY_SMS_API_KEY', default='')
