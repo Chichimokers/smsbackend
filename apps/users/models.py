@@ -2,6 +2,7 @@
 Custom User model for SMS Rental Platform.
 """
 
+import uuid
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
@@ -25,6 +26,7 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('is_verified', True)  # Superusers are auto-verified
         
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
@@ -47,6 +49,23 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField('nombre', max_length=150, blank=True)
     last_name = models.CharField('apellido', max_length=150, blank=True)
     google_id = models.CharField('Google ID', max_length=255, blank=True, null=True, unique=True)
+    
+    # Email verification fields
+    is_verified = models.BooleanField(
+        'verificado',
+        default=False,
+        help_text='Indica si el usuario ha verificado su email.',
+    )
+    verification_token = models.UUIDField(
+        'token de verificación',
+        default=uuid.uuid4,
+        unique=True,
+        help_text='Token único para verificar el email.',
+    )
+    verification_token_created_at = models.DateTimeField(
+        'fecha de creación del token',
+        auto_now_add=True,
+    )
     
     is_staff = models.BooleanField(
         'staff status',
@@ -81,3 +100,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     def get_short_name(self):
         """Return the short name for the user."""
         return self.first_name or self.email.split('@')[0]
+    
+    def regenerate_verification_token(self):
+        """Generate a new verification token."""
+        self.verification_token = uuid.uuid4()
+        self.verification_token_created_at = timezone.now()
+        self.save(update_fields=['verification_token', 'verification_token_created_at'])
+        return self.verification_token
+    
+    def verify_email(self):
+        """Mark the user as verified."""
+        self.is_verified = True
+        self.save(update_fields=['is_verified'])
