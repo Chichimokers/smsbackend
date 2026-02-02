@@ -193,7 +193,10 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')  # App Password for Gmail
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='SMS Rental <noreply@smsrental.com>')
 
-# Frontend URL for email verification links
+# Backend URL for verification links (the API server URL)
+BACKEND_URL = config('BACKEND_URL', default='http://localhost:8000')
+
+# Frontend URL (kept for future use)
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
 # Logging

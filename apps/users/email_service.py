@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 
 def get_verification_url(token: str) -> str:
     """Build the verification URL for a given token."""
-    base_url = settings.FRONTEND_URL.rstrip('/')
-    return f"{base_url}/verify-email/{token}"
+    # Use BACKEND_URL for the verification endpoint (renders HTML directly)
+    base_url = settings.BACKEND_URL.rstrip('/')
+    return f"{base_url}/api/auth/verify/{token}/"
 
 
 def send_verification_email(user) -> bool:
